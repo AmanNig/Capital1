@@ -44,6 +44,84 @@ class AdvancedIntentClassifier:
         
         # Intent definitions with examples
         self.intents = {
+            'greeting': {
+                'description': 'Greetings, hellos, and casual introductions',
+                'examples': [
+                    "hello", "hi", "hey", "good morning", "good afternoon", "good evening",
+                    "namaste", "namaskar", "salaam", "howdy", "what's up", "sup",
+                    "hello there", "hi there", "hey there", "good day", "good night",
+                    "hello sir", "hello ma'am", "hi everyone", "hey everyone",
+                    "नमस्ते", "नमस्कार", "सलाम", "हैलो", "हाय", "कैसे हो",
+                    "कैसा चल रहा है", "क्या हाल है", "सुप्रभात", "सुसंध्या",
+                    "hello how are you", "hi how are you", "hey how are you",
+                    "hello how are you doing", "hi how are you doing",
+                    "how are you", "how do you do", "pleasure to meet you",
+                    "nice to meet you", "good to see you", "long time no see"
+                ]
+            },
+            'farewell': {
+                'description': 'Goodbyes, farewells, and ending conversations',
+                'examples': [
+                    "goodbye", "bye", "see you", "see you later", "see you soon",
+                    "take care", "take it easy", "have a good day", "have a nice day",
+                    "good night", "sleep well", "sweet dreams", "until next time",
+                    "farewell", "adios", "ciao", "au revoir", "auf wiedersehen",
+                    "alvida", "फिर मिलेंगे", "अलविदा", "खुदा हाफिज", "गुड बाय",
+                    "बाय", "फिर मिलते हैं", "अच्छा रहो", "ख्याल रखना",
+                    "goodbye for now", "see you around", "catch you later",
+                    "talk to you later", "until we meet again", "so long",
+                    "have a great day", "enjoy your day", "stay safe"
+                ]
+            },
+            'introduction': {
+                'description': 'Self-introductions and asking about identity',
+                'examples': [
+                    "who are you", "what are you", "tell me about yourself",
+                    "what can you do", "what is your name", "what do you do",
+                    "introduce yourself", "what is this", "what is this bot",
+                    "are you a bot", "are you ai", "are you artificial intelligence",
+                    "what kind of bot are you", "what is your purpose",
+                    "what is your function", "what services do you provide",
+                    "आप कौन हैं", "आप क्या हैं", "अपने बारे में बताइए",
+                    "आपका नाम क्या है", "आप क्या करते हैं", "आप कैसे काम करते हैं",
+                    "आप किस तरह का बॉट हैं", "आपका उद्देश्य क्या है",
+                    "आप क्या सेवाएं प्रदान करते हैं", "आप कैसे मदद कर सकते हैं",
+                    "my name is", "i am", "i'm", "this is", "calling from",
+                    "i work as", "i do", "i study", "i live in", "i'm from"
+                ]
+            },
+            'gratitude': {
+                'description': 'Thank you messages and expressions of gratitude',
+                'examples': [
+                    "thank you", "thanks", "thank you so much", "thanks a lot",
+                    "thank you very much", "thanks very much", "much obliged",
+                    "appreciate it", "appreciate that", "thanks for your help",
+                    "thank you for helping", "thanks for the information",
+                    "thank you for your time", "thanks for everything",
+                    "धन्यवाद", "शुक्रिया", "बहुत बहुत धन्यवाद", "आभार",
+                    "धन्यवाद आपकी मदद के लिए", "शुक्रिया जानकारी के लिए",
+                    "आपका बहुत बहुत शुक्रिया", "आपकी कृपा के लिए धन्यवाद",
+                    "grateful", "gratitude", "blessed", "fortunate", "lucky",
+                    "thank you kindly", "many thanks", "thanks a million",
+                    "thank you from the bottom of my heart", "owe you one"
+                ]
+            },
+            'wellbeing': {
+                'description': 'Asking about health, mood, and general wellbeing',
+                'examples': [
+                    "how are you", "how are you doing", "how do you feel",
+                    "are you okay", "are you alright", "how is everything",
+                    "how is it going", "how have you been", "what's new",
+                    "how is your day", "how is your day going", "feeling good",
+                    "are you feeling well", "how is your health", "how is life",
+                    "कैसे हो", "कैसा चल रहा है", "सब ठीक है", "कैसा लग रहा है",
+                    "कैसा महसूस कर रहे हो", "दिन कैसा जा रहा है", "सब बढ़िया",
+                    "तबीयत कैसी है", "जिंदगी कैसी चल रही है", "सब कुछ ठीक है",
+                    "i'm fine", "i'm good", "i'm okay", "i'm well", "i'm great",
+                    "doing well", "feeling great", "all good", "everything is fine",
+                    "life is good", "can't complain", "pretty good", "not bad"
+                ]
+            },
             'crop_advice': {
                 'description': 'Queries about crop cultivation, diseases, and farming practices',
                 'examples': [

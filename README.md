@@ -40,6 +40,19 @@ A comprehensive Natural Language Processing pipeline designed specifically for a
   - spaCy NER
   - Transformer-based NER
 
+### 🌤️ Weather Service
+- **Historical Weather Data**: Past 20 days of comprehensive weather information
+- **Weather Forecasting**: 7-day detailed weather forecast
+- **Agricultural Insights**: 
+  - **Soil Moisture Analysis**: Assess soil moisture levels and irrigation needs
+  - **Crop Health Assessment**: Evaluate temperature and humidity stress on crops
+  - **Irrigation Recommendations**: Smart irrigation scheduling based on weather
+  - **Pest Risk Evaluation**: Predict pest pressure based on weather conditions
+  - **Harvest Timing Optimization**: Optimal harvest timing recommendations
+- **Multiple Data Sources**: Open-Meteo API (free, no API key required)
+- **Location Intelligence**: Automatic geocoding and timezone detection
+- **Comprehensive Reports**: Detailed weather analysis with agricultural recommendations
+
 ### 🚀 Pipeline Features
 - **End-to-End Processing**: Complete query analysis in one pipeline
 - **Batch Processing**: Handle multiple queries efficiently
@@ -148,6 +161,12 @@ For command-line usage:
 python cli.py --text "गेहूं की फसल में पानी देना है"
 python cli.py --details  # Show detailed scores
 
+# Weather Service CLI
+python weather_cli.py --interactive  # Interactive weather service
+python weather_cli.py --location "Mumbai, Maharashtra, India"  # Specific location
+python weather_cli.py --location "Delhi, India" --json  # JSON output
+python weather_cli.py --location "Pune, Maharashtra" --save weather_report.json  # Save to file
+
 # Quick chatbot for single queries
 python quick_chatbot.py "मेरी फसल में रोग लग गया है"
 
@@ -205,6 +224,71 @@ curl -X POST "http://localhost:8000/extract-entities" \
 ### API Documentation
 - Interactive docs: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
+
+## 🌤️ Weather Service Usage
+
+### Basic Weather Service
+
+```python
+from weather_service import WeatherService
+
+# Initialize weather service
+weather_service = WeatherService()
+
+# Get comprehensive weather report
+report = weather_service.get_comprehensive_weather_report("Mumbai, Maharashtra, India")
+
+# Access different sections
+location_info = report['location']
+historical_data = report['historical_data']  # Past 20 days
+forecast_data = report['forecast_data']      # Next 7 days
+insights = report['agricultural_insights']   # Agricultural recommendations
+```
+
+### Individual Weather Functions
+
+```python
+# Get location coordinates
+location_info = weather_service.get_location_coordinates("Delhi, India")
+
+# Get historical weather data
+historical = weather_service.get_historical_weather("Pune, Maharashtra", days=20)
+
+# Get weather forecast
+forecast = weather_service.get_weather_forecast("Bangalore, Karnataka", days=7)
+
+# Generate agricultural insights
+insights = weather_service.get_agricultural_insights(historical, forecast)
+```
+
+### Weather CLI Tool
+
+```bash
+# Interactive mode
+python weather_cli.py --interactive
+
+# Specific location with full report
+python weather_cli.py --location "Mumbai, Maharashtra, India"
+
+# JSON output for programmatic use
+python weather_cli.py --location "Delhi, India" --json
+
+# Save report to file
+python weather_cli.py --location "Pune, Maharashtra" --save weather_report.json
+
+# Specific sections only
+python weather_cli.py --location "Chennai, Tamil Nadu" --historical-only
+python weather_cli.py --location "Hyderabad, Telangana" --forecast-only
+python weather_cli.py --location "Kolkata, West Bengal" --insights-only
+```
+
+### Weather Demo
+
+Run the weather service demo to see all features:
+
+```bash
+python weather_demo.py
+```
 
 ## 🎮 Demo & Chatbot
 

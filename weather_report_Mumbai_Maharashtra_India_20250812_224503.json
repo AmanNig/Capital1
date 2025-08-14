@@ -1,0 +1,612 @@
+{
+  "location": {
+    "name": "Mumbai, Maharashtra, India",
+    "coordinates": {
+      "latitude": 19.054999,
+      "longitude": 72.8692035
+    },
+    "city": "",
+    "state": "",
+    "country": "",
+    "timezone": "Asia/Kolkata"
+  },
+  "current_time": "2025-08-12T22:45:03.219365",
+  "historical_data": [
+    {
+      "date": "2025-07-23",
+      "temperature": {
+        "max": 27.7,
+        "min": 26.9,
+        "avg": 27.2
+      },
+      "humidity": 88.25,
+      "precipitation": 21.0,
+      "wind": {
+        "speed": 16.4,
+        "direction": "SW"
+      },
+      "pressure": 1002.7875,
+      "visibility": 9060.833333333334,
+      "uv_index": 1.1354166666666667,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-07-24",
+      "temperature": {
+        "max": 27.7,
+        "min": 27.2,
+        "avg": 27.4
+      },
+      "humidity": 87.83333333333333,
+      "precipitation": 23.9,
+      "wind": {
+        "speed": 20.1,
+        "direction": "SW"
+      },
+      "pressure": 1001.1916666666666,
+      "visibility": 7411.666666666667,
+      "uv_index": 1.45625,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-07-25",
+      "temperature": {
+        "max": 27.6,
+        "min": 26.8,
+        "avg": 27.3
+      },
+      "humidity": 90.0,
+      "precipitation": 46.0,
+      "wind": {
+        "speed": 24.8,
+        "direction": "SW"
+      },
+      "pressure": 1001.025,
+      "visibility": 5604.166666666667,
+      "uv_index": 0.2916666666666667,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-07-26",
+      "temperature": {
+        "max": 27.8,
+        "min": 27.1,
+        "avg": 27.6
+      },
+      "humidity": 87.04166666666667,
+      "precipitation": 40.8,
+      "wind": {
+        "speed": 22.2,
+        "direction": "WSW"
+      },
+      "pressure": 1002.0583333333334,
+      "visibility": 8275.0,
+      "uv_index": 0.6645833333333334,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-07-27",
+      "temperature": {
+        "max": 28.5,
+        "min": 27.6,
+        "avg": 28.1
+      },
+      "humidity": 83.75,
+      "precipitation": 25.9,
+      "wind": {
+        "speed": 31.3,
+        "direction": "WSW"
+      },
+      "pressure": 1003.2125,
+      "visibility": 13729.166666666666,
+      "uv_index": 1.5166666666666666,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-07-28",
+      "temperature": {
+        "max": 28.1,
+        "min": 27.5,
+        "avg": 27.8
+      },
+      "humidity": 83.5,
+      "precipitation": 12.8,
+      "wind": {
+        "speed": 31.2,
+        "direction": "WSW"
+      },
+      "pressure": 1004.6458333333334,
+      "visibility": 15758.333333333334,
+      "uv_index": 1.9083333333333332,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-07-29",
+      "temperature": {
+        "max": 28.4,
+        "min": 27.6,
+        "avg": 28.0
+      },
+      "humidity": 83.04166666666667,
+      "precipitation": 13.5,
+      "wind": {
+        "speed": 31.8,
+        "direction": "WSW"
+      },
+      "pressure": 1005.0208333333334,
+      "visibility": 14901.666666666666,
+      "uv_index": 0.7833333333333333,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-07-30",
+      "temperature": {
+        "max": 28.3,
+        "min": 27.6,
+        "avg": 27.8
+      },
+      "humidity": 83.58333333333333,
+      "precipitation": 7.4,
+      "wind": {
+        "speed": 28.0,
+        "direction": "WSW"
+      },
+      "pressure": 1004.5625,
+      "visibility": 20065.0,
+      "uv_index": 1.5791666666666666,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-07-31",
+      "temperature": {
+        "max": 27.9,
+        "min": 27.4,
+        "avg": 27.7
+      },
+      "humidity": 84.16666666666667,
+      "precipitation": 6.1,
+      "wind": {
+        "speed": 28.3,
+        "direction": "SW"
+      },
+      "pressure": 1005.1458333333334,
+      "visibility": 19342.5,
+      "uv_index": 2.1958333333333333,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-08-01",
+      "temperature": {
+        "max": 27.7,
+        "min": 27.3,
+        "avg": 27.5
+      },
+      "humidity": 85.41666666666667,
+      "precipitation": 7.8,
+      "wind": {
+        "speed": 22.5,
+        "direction": "SW"
+      },
+      "pressure": 1005.85,
+      "visibility": 19520.833333333332,
+      "uv_index": 2.125,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-08-02",
+      "temperature": {
+        "max": 27.5,
+        "min": 27.0,
+        "avg": 27.2
+      },
+      "humidity": 86.75,
+      "precipitation": 8.6,
+      "wind": {
+        "speed": 15.3,
+        "direction": "WSW"
+      },
+      "pressure": 1006.0333333333333,
+      "visibility": 23241.666666666668,
+      "uv_index": 2.0375,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-08-03",
+      "temperature": {
+        "max": 27.9,
+        "min": 26.9,
+        "avg": 27.3
+      },
+      "humidity": 86.41666666666667,
+      "precipitation": 6.7,
+      "wind": {
+        "speed": 11.8,
+        "direction": "SW"
+      },
+      "pressure": 1006.8208333333333,
+      "visibility": 23950.833333333332,
+      "uv_index": 1.98125,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-08-04",
+      "temperature": {
+        "max": 28.2,
+        "min": 26.9,
+        "avg": 27.4
+      },
+      "humidity": 85.16666666666667,
+      "precipitation": 4.0,
+      "wind": {
+        "speed": 13.3,
+        "direction": "WSW"
+      },
+      "pressure": 1007.7916666666666,
+      "visibility": 23841.666666666668,
+      "uv_index": 2.060416666666667,
+      "condition": "Light Rain",
+      "description": "Light rainfall, beneficial for agriculture"
+    },
+    {
+      "date": "2025-08-05",
+      "temperature": {
+        "max": 28.4,
+        "min": 26.8,
+        "avg": 27.6
+      },
+      "humidity": 84.33333333333333,
+      "precipitation": 2.8,
+      "wind": {
+        "speed": 10.9,
+        "direction": "W"
+      },
+      "pressure": 1007.3416666666667,
+      "visibility": 24126.666666666668,
+      "uv_index": 2.2625,
+      "condition": "Light Rain",
+      "description": "Light rainfall, beneficial for agriculture"
+    },
+    {
+      "date": "2025-08-06",
+      "temperature": {
+        "max": 28.6,
+        "min": 27.4,
+        "avg": 27.9
+      },
+      "humidity": 83.25,
+      "precipitation": 1.6,
+      "wind": {
+        "speed": 9.4,
+        "direction": "WNW"
+      },
+      "pressure": 1007.0583333333334,
+      "visibility": 23513.333333333332,
+      "uv_index": 2.222916666666667,
+      "condition": "Light Rain",
+      "description": "Light rainfall, beneficial for agriculture"
+    },
+    {
+      "date": "2025-08-07",
+      "temperature": {
+        "max": 28.4,
+        "min": 27.2,
+        "avg": 27.7
+      },
+      "humidity": 85.75,
+      "precipitation": 8.9,
+      "wind": {
+        "speed": 9.3,
+        "direction": "W"
+      },
+      "pressure": 1006.7958333333332,
+      "visibility": 24088.333333333332,
+      "uv_index": 2.064583333333333,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-08-08",
+      "temperature": {
+        "max": 28.3,
+        "min": 27.3,
+        "avg": 27.6
+      },
+      "humidity": 84.95833333333333,
+      "precipitation": 8.5,
+      "wind": {
+        "speed": 9.2,
+        "direction": "SW"
+      },
+      "pressure": 1007.4499999999999,
+      "visibility": 21817.5,
+      "uv_index": 1.9541666666666666,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-08-09",
+      "temperature": {
+        "max": 28.0,
+        "min": 27.0,
+        "avg": 27.4
+      },
+      "humidity": 85.875,
+      "precipitation": 8.3,
+      "wind": {
+        "speed": 8.9,
+        "direction": "SW"
+      },
+      "pressure": 1008.8458333333333,
+      "visibility": 23400.0,
+      "uv_index": 2.1125000000000003,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-08-10",
+      "temperature": {
+        "max": 28.6,
+        "min": 27.0,
+        "avg": 27.6
+      },
+      "humidity": 82.83333333333333,
+      "precipitation": 8.4,
+      "wind": {
+        "speed": 13.0,
+        "direction": "SW"
+      },
+      "pressure": 1008.3166666666666,
+      "visibility": 23589.166666666668,
+      "uv_index": 2.06875,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-08-11",
+      "temperature": {
+        "max": 28.7,
+        "min": 27.1,
+        "avg": 27.9
+      },
+      "humidity": 82.08333333333333,
+      "precipitation": 5.2,
+      "wind": {
+        "speed": 14.3,
+        "direction": "WSW"
+      },
+      "pressure": 1007.975,
+      "visibility": 23833.333333333332,
+      "uv_index": 2.191666666666667,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-08-12",
+      "temperature": {
+        "max": 28.5,
+        "min": 27.3,
+        "avg": 27.8
+      },
+      "humidity": 83.375,
+      "precipitation": 8.7,
+      "wind": {
+        "speed": 14.0,
+        "direction": "WSW"
+      },
+      "pressure": 1006.7375000000001,
+      "visibility": 23577.5,
+      "uv_index": 2.1750000000000003,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    }
+  ],
+  "forecast_data": [
+    {
+      "date": "2025-08-12",
+      "temperature": {
+        "max": 28.5,
+        "min": 27.3,
+        "avg": 27.8
+      },
+      "humidity": 83.375,
+      "precipitation": {
+        "probability": 100,
+        "amount": 8.7
+      },
+      "wind": {
+        "speed": 14.0,
+        "direction": "WSW"
+      },
+      "pressure": 1006.7375000000001,
+      "uv_index": 2.1750000000000003,
+      "condition": "Moderate Rain",
+      "description": "Moderate rainfall, good for crops"
+    },
+    {
+      "date": "2025-08-13",
+      "temperature": {
+        "max": 27.8,
+        "min": 27.2,
+        "avg": 27.5
+      },
+      "humidity": 85.75,
+      "precipitation": {
+        "probability": 100,
+        "amount": 27.4
+      },
+      "wind": {
+        "speed": 16.6,
+        "direction": "SW"
+      },
+      "pressure": 1005.1958333333333,
+      "uv_index": 1.9312500000000001,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-08-14",
+      "temperature": {
+        "max": 27.6,
+        "min": 26.6,
+        "avg": 27.2
+      },
+      "humidity": 87.79166666666667,
+      "precipitation": {
+        "probability": 100,
+        "amount": 40.8
+      },
+      "wind": {
+        "speed": 21.6,
+        "direction": "SW"
+      },
+      "pressure": 1004.8583333333332,
+      "uv_index": 0.32916666666666666,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-08-15",
+      "temperature": {
+        "max": 27.7,
+        "min": 26.7,
+        "avg": 27.1
+      },
+      "humidity": 88.83333333333333,
+      "precipitation": {
+        "probability": 100,
+        "amount": 45.2
+      },
+      "wind": {
+        "speed": 19.5,
+        "direction": "SW"
+      },
+      "pressure": 1003.7458333333334,
+      "uv_index": 0.8541666666666666,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-08-16",
+      "temperature": {
+        "max": 27.8,
+        "min": 27.1,
+        "avg": 27.4
+      },
+      "humidity": 88.0,
+      "precipitation": {
+        "probability": 100,
+        "amount": 45.0
+      },
+      "wind": {
+        "speed": 16.8,
+        "direction": "SW"
+      },
+      "pressure": 1002.5124999999999,
+      "uv_index": 0.27499999999999997,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-08-17",
+      "temperature": {
+        "max": 27.7,
+        "min": 26.7,
+        "avg": 27.1
+      },
+      "humidity": 90.125,
+      "precipitation": {
+        "probability": 100,
+        "amount": 51.3
+      },
+      "wind": {
+        "speed": 17.3,
+        "direction": "SW"
+      },
+      "pressure": 1003.0666666666666,
+      "uv_index": 0.6270833333333333,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    },
+    {
+      "date": "2025-08-18",
+      "temperature": {
+        "max": 27.7,
+        "min": 26.7,
+        "avg": 27.2
+      },
+      "humidity": 88.875,
+      "precipitation": {
+        "probability": 100,
+        "amount": 69.0
+      },
+      "wind": {
+        "speed": 24.7,
+        "direction": "WSW"
+      },
+      "pressure": 1005.0916666666667,
+      "uv_index": 1.1666666666666667,
+      "condition": "Heavy Rain",
+      "description": "Heavy rainfall with potential flooding"
+    }
+  ],
+  "agricultural_insights": {
+    "soil_moisture": {
+      "status": "High",
+      "risk": "Waterlogging possible",
+      "recent_precipitation": 49.6,
+      "forecast_precipitation": 287.4,
+      "total_precipitation": 337.0
+    },
+    "crop_health": {
+      "temperature_stress": "Low",
+      "temperature_impact": "Optimal temperature conditions",
+      "humidity_impact": "High humidity may promote disease",
+      "average_temperature": 27.609523809523807,
+      "average_humidity": 85.11309523809524
+    },
+    "irrigation_needs": {
+      "irrigation_needed": "No",
+      "frequency": "Not required",
+      "amount": "None",
+      "recent_water": 22.3,
+      "forecast_water": 76.89999999999999,
+      "total_water": 99.19999999999999
+    },
+    "pest_risk": {
+      "risk_level": "High",
+      "potential_pests": "Fungal diseases, insects",
+      "average_temperature": 27.609523809523807,
+      "average_humidity": 85.11309523809524
+    },
+    "harvest_timing": {
+      "timing": "Poor",
+      "recommendation": "Consider delaying harvest",
+      "dry_days_forecast": 0,
+      "total_forecast_days": 7
+    },
+    "recommendations": [
+      "Prepare for wet conditions in the coming week",
+      "Delay field operations if possible",
+      "Monitor weather forecasts regularly",
+      "Adjust farming practices based on weather conditions"
+    ]
+  },
+  "summary": {
+    "historical_days": 21,
+    "forecast_days": 7,
+    "data_source": "Open-Meteo API",
+    "last_updated": "2025-08-12T22:45:03.219422"
+  }
+}
