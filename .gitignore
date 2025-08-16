@@ -299,7 +299,6 @@ secrets.json
 .env.staging
 
 # Database files
-*.db
 *.sqlite
 *.sqlite3
 

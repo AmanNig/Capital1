@@ -16,6 +16,7 @@ from improved_policy_chatbot import ImprovedPolicyChatbot
 from nlp_pipeline.pipeline import QueryProcessingPipeline
 from weather_service import WeatherService, LocationInfo
 from dotenv import load_dotenv
+import sqlite3
 
 # Load environment variables from .env file
 load_dotenv()
@@ -290,6 +291,53 @@ Agricultural Advice:"""
         except Exception as e:
             logger.error(f"Error generating comprehensive weather advice: {e}")
             return f"❌ Error generating advice: {e}"
+        
+    def generate_sql(self, user_query: str) -> str:
+        """Translate natural language agricultural price queries into SQL"""
+        if not self.api_key:
+            return "❌ Groq API key not found."
+        
+        try:
+            prompt = f"""
+    You are an assistant that translates natural language agricultural price questions into SQL queries.
+    The database is SQLite with a table `mandi_prices`.
+
+    Columns:
+    - State (TEXT)
+    - District (TEXT)
+    - Market (TEXT)
+    - Commodity (TEXT)
+    - Variety (TEXT)
+    - Arrival_Date (TEXT in YYYY-MM-DD format)
+    - Min_Price (INTEGER)
+    - Max_Price (INTEGER)
+    - Modal_Price (INTEGER)
+
+    Return only SQL code without explanation.
+
+    User query: "{user_query}"
+    """
+
+            payload = {
+                "model": "llama3-8b-8192",
+                "messages": [
+                    {"role": "system", "content": "You are an expert SQL generator. Always return valid SQLite SQL code only."},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0,
+                "max_tokens": 300
+            }
+            
+            response = requests.post(self.base_url, headers=self.headers, json=payload, timeout=30)
+            response.raise_for_status()
+            
+            result = response.json()
+            return result['choices'][0]['message']['content'].strip()
+        
+        except Exception as e:
+            logger.error(f"Error generating SQL: {e}")
+            return f"❌ Error generating SQL: {e}"
+
     
     def generate_general_advice(self, query: str) -> str:
         """Generate general agricultural advice"""
@@ -365,6 +413,28 @@ class AgriculturalAdvisorBot:
                 logger.error("Policy database directory 'improved_vector_db' not found")
         
         self.user_city = None
+        self.user_crop = None
+
+    def get_latest_prices_all_markets(self, city: str, crop: str, db_path="agri_data.db"):
+        """Get the most recent price entry for each market in a given city and crop"""
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        query = """
+        SELECT Market, MAX(Arrival_Date), Modal_Price
+        FROM mandi_prices
+        WHERE District LIKE ? AND Commodity LIKE ?
+        GROUP BY Market
+        ORDER BY MAX(Arrival_Date) DESC;
+        """
+
+        cursor.execute(query, (f"%{city}%", f"%{crop}%"))
+        results = cursor.fetchall()
+        conn.close()
+
+        # Returns list of (market, date, price)
+        return results
+
     
     def process_query(self, query: str) -> str:
         """Process user query and provide appropriate response"""
@@ -489,6 +559,57 @@ class AgriculturalAdvisorBot:
             logger.error(f"Error handling weather query: {e}")
             return f"❌ Error processing weather query: {e}"
     
+    def _handle_price_query(self, query: str) -> str:
+        """Handle mandi price queries using LLM-based SQL generation."""
+        try:
+            # Step 1: Ask Groq to generate SQL
+            sql_query = self.groq_advisor.generate_sql(query).strip()
+
+            logger.info(f"Groq SQL: {sql_query}")
+
+            # Step 2: Try executing the SQL
+            conn = sqlite3.connect(self.db.db_path)
+            try:
+                results = conn.execute(sql_query).fetchall()
+            except Exception as e:
+                logger.warning(f"Groq SQL failed: {e}")
+                results = []
+
+            conn.close()
+
+            # Step 3: If Groq SQL worked
+            if results:
+                return self.groq_advisor.generate_general_advice(
+                    f"{query}\nData retrieved from the database:\n{results}\n"
+                    f"Please summarize this for farmers in simple words using the data retrieved."
+                )
+
+            # Step 4: Fallback → general safe query
+            else:
+                city = self.user_city(query)
+                crop = self.user_crop(query)
+                if not city or not crop:
+                    return "Please specify both city and crop for accurate price information."
+
+                fallback_results = self.get_latest_prices_all_markets(city, crop)
+                if not fallback_results:
+                    return f"No data found for {crop} in {city}."
+
+                formatted = "\n".join([
+                    f"{market}: ₹{price}/quintal ({date})"
+                    for market, date, price in fallback_results
+                ])
+                return self.groq_advisor.generate_general_advice(
+                    f"{query}. "
+                    f"Here’s price data for {crop} in {city}:\n{formatted}\n"
+                    f"Summarize in farmer-friendly advice."
+                )
+
+        except Exception as e:
+            logger.error(f"Error handling price query: {e}")
+            return "I could not fetch the price data right now. Please try again later."
+
+
     def _handle_policy_query(self, query: str) -> str:
         """Handle policy-related queries"""
         if not self.policy_chatbot.is_loaded:
