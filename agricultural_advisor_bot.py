@@ -15,6 +15,7 @@ import logging
 from improved_policy_chatbot import ImprovedPolicyChatbot
 from nlp_pipeline.pipeline import QueryProcessingPipeline
 from weather_service import WeatherService, LocationInfo
+from init_mandi_soil import AgriculturalDataManager
 from dotenv import load_dotenv
 import sqlite3
 
@@ -39,9 +40,12 @@ class QueryClassifier:
         
         # Define intent mappings for our categories
         self.intent_mappings = {
-            'weather': ['weather_inquiry', 'climate_question', 'temperature_question', 'rainfall_question'],
-            'policy': ['policy_inquiry', 'scheme_question', 'subsidy_question', 'government_help'],
-            'agriculture': ['crop_question', 'farming_advice', 'soil_question', 'pest_question', 'irrigation_question']
+            'weather': ['weather_query', 'weather_inquiry', 'climate_question', 'temperature_question', 'rainfall_question'],
+            'policy': ['policy_query', 'policy_inquiry', 'scheme_question', 'subsidy_question', 'government_help'],
+            'price': ['price_query', 'market_question', 'price_inquiry', 'mandi_question'],
+            'technical': ['technical_support', 'equipment_question', 'technology_question', 'repair_question'],
+            'general': ['general_inquiry', 'basic_question', 'information_question'],
+            'agriculture': ['crop_advice', 'crop_question', 'farming_advice', 'soil_question', 'pest_question', 'irrigation_question']
         }
     
     def classify_query(self, query: str) -> str:
@@ -73,7 +77,7 @@ class QueryClassifier:
             'weather', 'temperature', 'rain', 'rainfall', 'drought', 'flood',
             'humidity', 'wind', 'climate', 'forecast', 'seasonal', 'monsoon',
             'hot', 'cold', 'dry', 'wet', 'storm', 'cyclone', 'heat wave',
-            'frost', 'hail', 'snow', 'sunny', 'cloudy', 'overcast'
+            'frost', 'hail', 'snow', 'sunny', 'cloudy', 'overcast', 'mausam', 'baarish'
         ]
         
         policy_keywords = [
@@ -81,26 +85,49 @@ class QueryClassifier:
             'government', 'pm kisan', 'pmksy', 'soil health', 'mandi',
             'procurement', 'msp', 'fertilizer', 'seed', 'equipment',
             'guidelines', 'procedure', 'application', 'eligibility',
-            'benefit', 'assistance', 'fund', 'grant', 'certificate'
+            'benefit', 'assistance', 'fund', 'grant', 'certificate', 'yojana', 'sarkar'
+        ]
+        
+        price_keywords = [
+            'price', 'rate', 'cost', 'worth', 'value', 'mandi', 'market', 'bhav', 'dam',
+            'mulya', 'keemat', 'rupees', 'rs', 'quintal', 'ton', 'kg', 'per', 'auction'
+        ]
+        
+        technical_keywords = [
+            'tractor', 'equipment', 'machine', 'system', 'technology', 'repair', 'maintenance',
+            'digital', 'automated', 'troubleshoot', 'fix', 'technical'
+        ]
+        
+        general_keywords = [
+            'what is', 'tell me about', 'information about', 'guide for', 'basic', 
+            'how to start', 'beginner', 'overview', 'introduction', 'general'
         ]
         
         agriculture_keywords = [
             'crop', 'farming', 'agriculture', 'soil', 'fertilizer', 'pesticide',
             'irrigation', 'harvest', 'planting', 'seeding', 'pest', 'disease',
-            'yield', 'production', 'market', 'price', 'storage', 'transport',
-            'organic', 'traditional', 'modern', 'technology', 'equipment'
+            'yield', 'production', 'storage', 'transport', 'organic', 'traditional', 'modern'
         ]
         
         # Count keyword matches
         weather_score = sum(1 for keyword in weather_keywords if keyword in query_lower)
         policy_score = sum(1 for keyword in policy_keywords if keyword in query_lower)
+        price_score = sum(1 for keyword in price_keywords if keyword in query_lower)
+        technical_score = sum(1 for keyword in technical_keywords if keyword in query_lower)
+        general_score = sum(1 for keyword in general_keywords if keyword in query_lower)
         agriculture_score = sum(1 for keyword in agriculture_keywords if keyword in query_lower)
         
-        # Classification logic
+        # Classification logic with priority
         if weather_score > 0:
             return "weather"
         elif policy_score > 0:
             return "policy"
+        elif price_score > 0:
+            return "price"
+        elif technical_score > 0:
+            return "technical"
+        elif general_score > 0:
+            return "general"
         elif agriculture_score > 0:
             return "agriculture"
         else:
@@ -412,6 +439,9 @@ class AgriculturalAdvisorBot:
             else:
                 logger.error("Policy database directory 'improved_vector_db' not found")
         
+        # Initialize agricultural data manager
+        self.data_manager = AgriculturalDataManager()
+        
         self.user_city = None
         self.user_crop = None
 
@@ -445,6 +475,12 @@ class AgriculturalAdvisorBot:
             return self._handle_weather_query(query)
         elif query_type == "policy":
             return self._handle_policy_query(query)
+        elif query_type == "price":
+            return self._handle_price_query(query)
+        elif query_type == "technical":
+            return self._handle_technical_query(query)
+        elif query_type == "general":
+            return self._handle_general_query(query)
         elif query_type == "agriculture":
             return self._handle_agriculture_query(query)
         else:
@@ -452,8 +488,29 @@ class AgriculturalAdvisorBot:
     
     def _handle_weather_query(self, query: str) -> str:
         """Handle weather-related queries"""
+        intent_info = f"🎯 **Detected Intent: Weather Query**\n\n"
+        
         if not self.user_city:
-            return "🌤️ I can help you with weather-based agricultural advice! Please tell me your city name first using the 'city' command (e.g., 'city Mumbai').\n\n💡 Example: 'city Mumbai' then ask 'will it rain tomorrow?'"
+            return intent_info + "📍 Please set your city first using: 'city [cityname]' (e.g., 'city Mumbai')"
+        
+        try:
+            # Get comprehensive weather report
+            weather_report = self.weather_service.get_comprehensive_weather_report(self.user_city)
+            
+            # Generate AI-powered advice
+            advice = self.groq_advisor.generate_weather_advice_comprehensive(
+                query, 
+                weather_report['location'],
+                weather_report['current_weather'],
+                weather_report['forecast_data'],
+                weather_report.get('agricultural_insights', {})
+            )
+            
+            return intent_info + advice
+            
+        except Exception as e:
+            logger.error(f"Error handling weather query: {e}")
+            return intent_info + f"❌ Error getting weather information: {str(e)}"
         
         try:
             # Get comprehensive weather report using the existing weather service
@@ -553,7 +610,14 @@ class AgriculturalAdvisorBot:
             
             response += f"🤖 **AI Agricultural Advice:**\n{advice}"
             
-            return response
+            # Add source attribution
+            sources = f"\n📚 **Sources:**\n"
+            sources += f"• Weather Data: Open-Meteo API (Real-time)\n"
+            sources += f"• Location Data: Geocoding API\n"
+            sources += f"• AI Analysis: Groq API (Llama3-8b-8192 model)\n"
+            sources += f"• Agricultural Insights: Weather-based calculations\n"
+            
+            return response + sources
             
         except Exception as e:
             logger.error(f"Error handling weather query: {e}")
@@ -612,30 +676,276 @@ class AgriculturalAdvisorBot:
 
     def _handle_policy_query(self, query: str) -> str:
         """Handle policy-related queries"""
+        intent_info = f"🎯 **Detected Intent: Policy Query**\n\n"
+        
         if not self.policy_chatbot.is_loaded:
             # Fallback to general advice when policy database is not available
             logger.warning("Policy database not loaded, falling back to general advice")
-            return self.groq_advisor.generate_general_advice(
+            return intent_info + self.groq_advisor.generate_general_advice(
                 f"Government policy question: {query}. Please provide general information about government agricultural policies and schemes in India."
             )
         
         try:
             # Use Groq for better policy responses
-            return self.policy_chatbot.ask_question_with_groq(query)
+            policy_response = self.policy_chatbot.ask_question_with_groq(query)
+            
+            # Add source attribution
+            sources = f"\n📚 **Sources:**\n"
+            sources += f"• Policy Documents: `pdfs/` directory (12 PDF files)\n"
+            sources += f"• Vector Database: `improved_vector_db/` (973 sections)\n"
+            sources += f"• AI Processing: Groq API (Llama3-8b-8192 model)\n"
+            sources += f"• Documents: PM Kisan, PMKSY, Soil Health Card, Crop Insurance, etc.\n"
+            
+            return intent_info + policy_response + sources
         except Exception as e:
             logger.error(f"Error handling policy query: {e}")
             # Fallback to general advice
-            return self.groq_advisor.generate_general_advice(
+            return intent_info + self.groq_advisor.generate_general_advice(
                 f"Government policy question: {query}. Please provide general information about government agricultural policies and schemes in India."
             )
     
     def _handle_agriculture_query(self, query: str) -> str:
         """Handle general agricultural queries"""
-        return self.groq_advisor.generate_general_advice(query)
+        intent_info = f"🎯 **Detected Intent: Agriculture Query**\n\n"
+        
+        # Check if query is about soil health
+        query_lower = query.lower()
+        soil_keywords = ["soil", "ph", "nitrogen", "phosphorus", "potassium", "organic carbon"]
+        
+        if any(keyword in query_lower for keyword in soil_keywords):
+            return intent_info + self._handle_soil_health_query(query)
+        
+        # Check if query is about crop recommendations
+        crop_keywords = ["crop", "plant", "grow", "suitable", "recommend"]
+        if any(keyword in query_lower for keyword in crop_keywords):
+            return intent_info + self._handle_crop_recommendation_query(query)
+        
+        # Default to general agricultural advice
+        ai_advice = self.groq_advisor.generate_general_advice(query)
+        
+        # Add source attribution
+        sources = f"\n📚 **Sources:**\n"
+        sources += f"• AI Knowledge: Groq API (Llama3-8b-8192 model)\n"
+        sources += f"• Agricultural Expertise: Pre-trained model knowledge\n"
+        
+        return intent_info + ai_advice + sources
+    
+    def _handle_soil_health_query(self, query: str) -> str:
+        """Handle soil health related queries"""
+        location = self.user_city or "Kanpur"  # Default location
+        
+        # Map common city names to district names in our database
+        location_mapping = {
+            "kanpur": "Kanpur Nagar",
+            "kannauj": "Kannauj", 
+            "agra": "Agra",
+            "unnao": "Unnao",
+            "lucknow": "Lucknow"
+        }
+        
+        # Try to find the correct district name
+        search_location = location_mapping.get(location.lower(), location)
+        
+        try:
+            soil_result = self.data_manager.get_soil_health(search_location)
+            
+            if "error" in soil_result:
+                return f"❌ {soil_result['error']}\n\n🤖 **General Soil Advice:**\n{self.groq_advisor.generate_general_advice(query)}"
+            
+            # Combine soil data with AI advice
+            ai_advice = self.groq_advisor.generate_general_advice(
+                f"Soil health question: {query}. Based on soil data: pH {soil_result['ph']}, Organic Carbon {soil_result['organic_carbon']}%, N {soil_result['nitrogen']} kg/ha, P {soil_result['phosphorus']} kg/ha, K {soil_result['potassium']} kg/ha. Please provide soil management advice."
+            )
+            
+            # Add source attribution
+            sources = f"\n📚 **Sources:**\n"
+            sources += f"• Soil Data: `soil_health.csv` (5 districts)\n"
+            sources += f"• Database: `agri_data.db` (SQLite)\n"
+            sources += f"• AI Advice: Groq API (Llama3-8b-8192 model)\n"
+            
+            return f"🌱 **Soil Health Data for {location}:**\n{soil_result['formatted']}\n\n🤖 **Soil Management Advice:**\n{ai_advice}{sources}"
+            
+        except Exception as e:
+            logger.error(f"Error handling soil health query: {e}")
+            return f"❌ Error retrieving soil data: {str(e)}\n\n🤖 **General Soil Advice:**\n{self.groq_advisor.generate_general_advice(query)}"
+    
+    def _handle_crop_recommendation_query(self, query: str) -> str:
+        """Handle crop recommendation queries"""
+        location = self.user_city or "Kanpur"  # Default location
+        
+        # Map common city names to district names in our database
+        location_mapping = {
+            "kanpur": "Kanpur Nagar",
+            "kannauj": "Kannauj", 
+            "agra": "Agra",
+            "unnao": "Unnao",
+            "lucknow": "Lucknow"
+        }
+        
+        # Try to find the correct district name
+        search_location = location_mapping.get(location.lower(), location)
+        
+        try:
+            # Get soil data for recommendations
+            soil_result = self.data_manager.get_soil_health(search_location)
+            available_crops = self.data_manager.get_available_crops(location)
+            
+            soil_info = ""
+            if "error" not in soil_result:
+                soil_info = f"Based on soil data: pH {soil_result['ph']}, Organic Carbon {soil_result['organic_carbon']}%, N {soil_result['nitrogen']} kg/ha, P {soil_result['phosphorus']} kg/ha, K {soil_result['potassium']} kg/ha. "
+            
+            crop_info = ""
+            if available_crops:
+                crop_info = f"Commonly grown crops in {location}: {', '.join(available_crops[:5])}. "
+            
+            # Generate AI recommendation
+            ai_advice = self.groq_advisor.generate_general_advice(
+                f"Crop recommendation question: {query}. {soil_info}{crop_info}Please provide crop recommendations and farming advice."
+            )
+            
+            response = f"🌾 **Crop Information for {location}:**\n"
+            if available_crops:
+                response += f"• Available crops: {', '.join(available_crops[:5])}\n"
+            if "error" not in soil_result:
+                response += f"• Soil conditions: pH {soil_result['ph']}, Organic Carbon {soil_result['organic_carbon']}%\n"
+            response += f"\n🤖 **Crop Recommendations:**\n{ai_advice}"
+            
+            # Add source attribution
+            sources = f"\n📚 **Sources:**\n"
+            sources += f"• Crop Data: `mandi_prices.csv` (35,522 records)\n"
+            sources += f"• Soil Data: `soil_health.csv` (5 districts)\n"
+            sources += f"• Database: `agri_data.db` (SQLite)\n"
+            sources += f"• AI Recommendations: Groq API (Llama3-8b-8192 model)\n"
+            
+            return response + sources
+            
+        except Exception as e:
+            logger.error(f"Error handling crop recommendation query: {e}")
+            return f"❌ Error retrieving crop data: {str(e)}\n\n🤖 **General Crop Advice:**\n{self.groq_advisor.generate_general_advice(query)}"
+    
+    def _handle_price_query(self, query: str) -> str:
+        """Handle price-related queries"""
+        intent_info = f"🎯 **Detected Intent: Price Query**\n\n"
+        
+        # Extract crop and location from query
+        crop, location = self._extract_crop_and_location(query)
+        
+        if not location:
+            location = self.user_city or "Kanpur"  # Default to Kanpur if no city set
+        
+        if not crop:
+            # If no specific crop mentioned, provide general price information
+            return intent_info + self._get_general_price_info(location)
+        
+        # Get specific crop price information
+        price_info = self._get_crop_price_info(crop, location)
+        
+        # Combine with AI-generated advice
+        ai_advice = self.groq_advisor.generate_general_advice(
+            f"Market price question: {query}. Based on the price data: {price_info}. Please provide additional market insights and pricing advice for farmers."
+        )
+        
+        # Add source attribution
+        sources = f"\n📚 **Sources:**\n"
+        sources += f"• Price Data: `mandi_prices.csv` (35,522 records)\n"
+        sources += f"• Database: `agri_data.db` (SQLite)\n"
+        sources += f"• AI Insights: Groq API (Llama3-8b-8192 model)\n"
+        
+        return intent_info + f"📊 **Price Information:**\n{price_info}\n\n🤖 **AI Market Insights:**\n{ai_advice}{sources}"
+    
+    def _extract_crop_and_location(self, query: str) -> tuple:
+        """Extract crop and location from query"""
+        query_lower = query.lower()
+        
+        # Common crops - order matters for better matching
+        crops = ["wheat", "rice", "maize", "cotton", "potato", "tomato", "sugarcane", "pulses", "oilseeds"]
+        crop = None
+        
+        # More specific matching to avoid false positives
+        for c in crops:
+            # Check for exact word boundaries to avoid partial matches
+            if f" {c} " in f" {query_lower} " or query_lower.startswith(c) or query_lower.endswith(c):
+                crop = c.title()
+                break
+        
+        # Common locations (cities in our database)
+        locations = ["agra", "kannuj", "kanpur", "lucknow", "unnao", "mumbai", "delhi", "bangalore"]
+        location = None
+        for loc in locations:
+            if loc in query_lower:
+                location = loc.title()
+                break
+        
+        return crop, location
+    
+    def _get_crop_price_info(self, crop: str, location: str) -> str:
+        """Get specific crop price information"""
+        try:
+            # Get latest price
+            price_result = self.data_manager.get_latest_price(location, crop)
+            
+            if "error" in price_result:
+                return f"❌ {price_result['error']}"
+            
+            # Get price trends
+            trend_result = self.data_manager.get_price_trends(location, crop, days=30)
+            
+            price_info = f"🌾 **{crop} Prices in {location}:**\n"
+            price_info += f"• {price_result['formatted']}\n"
+            
+            if "error" not in trend_result:
+                price_info += f"• {trend_result['formatted']}\n"
+            
+            return price_info
+            
+        except Exception as e:
+            logger.error(f"Error getting price info: {e}")
+            return f"❌ Error retrieving price information: {str(e)}"
+    
+    def _get_general_price_info(self, location: str) -> str:
+        """Get general price information for a location"""
+        try:
+            # Get available crops
+            available_crops = self.data_manager.get_available_crops(location)
+            
+            if not available_crops:
+                return f"❌ No price data available for {location}"
+            
+            price_info = f"📊 **Available Crops in {location}:**\n"
+            price_info += f"• {', '.join(available_crops[:5])}\n\n"
+            price_info += "💡 **Tip:** Ask for specific crop prices like 'What is the price of wheat in Kanpur?'"
+            
+            return price_info
+            
+        except Exception as e:
+            logger.error(f"Error getting general price info: {e}")
+            return f"❌ Error retrieving price information: {str(e)}"
+    
+    def _handle_technical_query(self, query: str) -> str:
+        """Handle technical support queries"""
+        intent_info = f"🎯 **Detected Intent: Technical Support**\n\n"
+        ai_advice = self.groq_advisor.generate_general_advice(
+            f"Technical question: {query}. Please provide information about agricultural equipment, technology, maintenance, and technical solutions for farming."
+        )
+        
+        # Add source attribution
+        sources = f"\n📚 **Sources:**\n"
+        sources += f"• AI Knowledge: Groq API (Llama3-8b-8192 model)\n"
+        sources += f"• Agricultural Expertise: Pre-trained model knowledge\n"
+        
+        return intent_info + ai_advice + sources
     
     def _handle_general_query(self, query: str) -> str:
         """Handle general queries"""
-        return self.groq_advisor.generate_general_advice(query)
+        intent_info = f"🎯 **Detected Intent: General Inquiry**\n\n"
+        ai_advice = self.groq_advisor.generate_general_advice(query)
+        
+        # Add source attribution
+        sources = f"\n📚 **Sources:**\n"
+        sources += f"• AI Knowledge: Groq API (Llama3-8b-8192 model)\n"
+        sources += f"• Agricultural Expertise: Pre-trained model knowledge\n"
+        
+        return intent_info + ai_advice + sources
     
     def set_user_city(self, city: str) -> str:
         """Set user's city for weather queries"""
@@ -654,6 +964,8 @@ class AgriculturalAdvisorBot:
         print("🤖 I'm your AI agricultural advisor! I can help you with:")
         print("   • Weather-based farming advice")
         print("   • Government policy information")
+        print("   • Market prices and trends")
+        print("   • Technical support and equipment")
         print("   • General agricultural guidance")
         print("   • Crop and soil management tips")
         print("\n💡 Commands: 'city', 'stats', 'help', 'quit'")
@@ -747,6 +1059,7 @@ class AgriculturalAdvisorBot:
         
         print(f"🌤️ Weather Service: {'Available' if self.weather_service.api_key or self.weather_service.primary_api == 'openmeteo' else 'API key needed'}")
         print(f"🤖 AI Advisor: {'Available' if self.groq_advisor.api_key else 'API key needed'}")
+        print(f"📊 Agricultural Data: ✅ Available (Prices & Soil)")
     
     def _handle_city_command(self, command: str):
         """Handle city setting command"""
