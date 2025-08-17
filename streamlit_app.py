@@ -1,6 +1,20 @@
+import os
 import streamlit as st
 from agricultural_advisor_bot import AgriculturalAdvisorBot
 
+# ✅ Step 1: Ensure vector DB exists
+VECTOR_DB_DIR = "improved_vector_db"
+
+if not os.path.exists(VECTOR_DB_DIR) or not os.listdir(VECTOR_DB_DIR):
+    st.warning("⚙️ Vector DB not found. Building from scratch... This may take a few minutes.")
+    with st.spinner("Initializing databases..."):
+        # Run setup scripts in order
+        import init_mandi_soil
+        import pdf_vector_processor
+        import improved_policy_chatbot
+    st.success("✅ Vector DB created successfully!")
+
+# ✅ Step 2: Normal app logic
 st.set_page_config(page_title="Agricultural Advisor Bot", page_icon="🌾")
 
 st.title("🌾 Agricultural Advisor Bot")
