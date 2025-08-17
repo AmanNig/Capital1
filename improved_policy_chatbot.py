@@ -15,7 +15,7 @@ import time
 import requests
 from dotenv import load_dotenv
 import sys
-
+import torch
 # Load environment variables from .env file
 load_dotenv()
 
@@ -44,8 +44,19 @@ class PolicyDocument:
 class ImprovedPolicyProcessor:
     """Advanced PDF processor that extracts meaningful policy information"""
     
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
-        self.model = SentenceTransformer(model_name)
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2", device: Optional[str] = None):
+        """
+        Args:
+            model_name: SentenceTransformer model name
+            device: "cpu" or "cuda" (GPU). If None, it auto-detects.
+        """
+        if device is None:
+            # Auto-detect GPU, fallback to CPU
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        
+        self.device = device
+        self.model = SentenceTransformer(model_name, device=self.device)
+        
         self.documents: List[PolicyDocument] = []
         self.embeddings: Optional[np.ndarray] = None
         self.section_embeddings: Optional[np.ndarray] = None
