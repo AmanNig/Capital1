@@ -185,6 +185,10 @@ Instructions:
 8. Use simple, understandable language
 9. Structure your response with clear sections
 10. Focus on practical farming decisions
+11. Keep responses concise and direct (max 4-5 sentences)
+12. Do NOT use formal greetings like "Dear Farmer" or "Sincerely"
+13. Do NOT add signatures or formal closings
+14. Focus on actionable advice only
 
 Agricultural Advice:"""
 
@@ -193,7 +197,7 @@ Agricultural Advice:"""
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a knowledgeable and caring agricultural advisor with expertise in weather-based farming recommendations. Provide practical, science-based advice that helps farmers make informed decisions."
+                        "content": "You are a direct and practical agricultural advisor. Provide concise, actionable weather-based advice without formal language or greetings. Focus on practical solutions for Indian farmers."
                     },
                     {
                         "role": "user",
@@ -201,7 +205,7 @@ Agricultural Advice:"""
                     }
                 ],
                 "temperature": 0.4,
-                "max_tokens": 800
+                "max_tokens": 400
             }
             
             response = requests.post(self.base_url, headers=self.headers, json=payload, timeout=30)
@@ -290,6 +294,10 @@ Instructions:
 10. Use simple, understandable language
 11. Structure your response with clear sections
 12. Focus on practical farming decisions
+13. Keep responses concise and direct (max 4-5 sentences)
+14. Do NOT use formal greetings like "Dear Farmer" or "Sincerely"
+15. Do NOT add signatures or formal closings
+16. Focus on actionable advice only
 
 Agricultural Advice:"""
 
@@ -298,7 +306,7 @@ Agricultural Advice:"""
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a knowledgeable and caring agricultural advisor with expertise in weather-based farming recommendations. Provide practical, science-based advice that helps farmers make informed decisions."
+                        "content": "You are a direct and practical agricultural advisor. Provide concise, actionable weather-based advice without formal language or greetings. Focus on practical solutions for Indian farmers."
                     },
                     {
                         "role": "user",
@@ -306,7 +314,7 @@ Agricultural Advice:"""
                     }
                 ],
                 "temperature": 0.4,
-                "max_tokens": 800
+                "max_tokens": 400
             }
             
             response = requests.post(self.base_url, headers=self.headers, json=payload, timeout=30)
@@ -386,6 +394,10 @@ Instructions:
 7. If the question is about crops, mention suitable varieties and practices
 8. If about soil, mention testing and improvement methods
 9. If about pests/diseases, mention prevention and treatment
+10. Keep responses concise and direct (max 3-4 sentences)
+11. Do NOT use formal greetings like "Dear Farmer" or "Sincerely"
+12. Do NOT add signatures or formal closings
+13. Focus on actionable advice only
 
 Agricultural Advice:"""
 
@@ -394,7 +406,7 @@ Agricultural Advice:"""
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a knowledgeable and caring agricultural advisor with expertise in Indian farming practices. Provide practical, science-based advice that helps farmers improve their agricultural practices."
+                        "content": "You are a direct and practical agricultural advisor. Provide concise, actionable advice without formal language or greetings. Focus on practical solutions for Indian farmers."
                     },
                     {
                         "role": "user",
@@ -402,7 +414,7 @@ Agricultural Advice:"""
                     }
                 ],
                 "temperature": 0.4,
-                "max_tokens": 600
+                "max_tokens": 300
             }
             
             response = requests.post(self.base_url, headers=self.headers, json=payload, timeout=30)
@@ -413,6 +425,54 @@ Agricultural Advice:"""
             
         except Exception as e:
             logger.error(f"Error generating general advice: {e}")
+            return f"❌ Error generating advice: {e}"
+    
+    def generate_price_advice(self, query: str, price_data: str) -> str:
+        """Generate concise price-related advice"""
+        if not self.api_key:
+            return "❌ Groq API key not found."
+        
+        try:
+            prompt = f"""You are an agricultural market advisor. Provide brief, actionable price advice.
+
+Query: {query}
+Price Data: {price_data}
+
+Instructions:
+1. Give concise market insights (2-3 sentences max)
+2. Focus on actionable advice for farmers
+3. Use simple, direct language
+4. Do NOT use formal greetings like "Dear Farmer" or "Sincerely"
+5. Do NOT add signatures or formal closings
+6. Provide specific recommendations if possible
+7. Focus on actionable advice only
+
+Market Advice:"""
+
+            payload = {
+                "model": "llama3-8b-8192",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a direct and practical agricultural market advisor. Provide concise, actionable price advice without formal language or greetings. Focus on practical solutions for Indian farmers."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.3,
+                "max_tokens": 200
+            }
+            
+            response = requests.post(self.base_url, headers=self.headers, json=payload, timeout=30)
+            response.raise_for_status()
+            
+            result = response.json()
+            return result['choices'][0]['message']['content'].strip()
+            
+        except Exception as e:
+            logger.error(f"Error generating price advice: {e}")
             return f"❌ Error generating advice: {e}"
 
 class AgriculturalAdvisorBot:
@@ -476,13 +536,29 @@ class AgriculturalAdvisorBot:
             return "🎯 **Setup Required**\n\n📍 Please complete the initial setup first. Use 'help' to see available commands."
         
         # Classify the query
-        query_type = self.classifier.classify_query(query)
+        try:
+            query_type = self.classifier.classify_query(query)
+            print(f"🔍 **DEBUG: Query '{query}' classified as: {query_type}**")
+        except Exception as e:
+            print(f"❌ **DEBUG: Classification failed: {e}**")
+            # Fallback classification
+            query_lower = query.lower()
+            if any(word in query_lower for word in ['price', 'rate', 'cost', 'mandi', 'market', 'bhav']):
+                query_type = "price"
+            elif any(word in query_lower for word in ['weather', 'temperature', 'rain', 'forecast']):
+                query_type = "weather"
+            elif any(word in query_lower for word in ['policy', 'scheme', 'government']):
+                query_type = "policy"
+            else:
+                query_type = "general"
+            print(f"🔍 **DEBUG: Fallback classification: {query_type}**")
         
         if query_type == "weather":
             return self._handle_weather_query(query)
         elif query_type == "policy":
             return self._handle_policy_query(query)
         elif query_type == "price":
+            print(f"💰 **PRICE QUERY DETECTED: {query}**")
             return self._handle_price_query(query)
         elif query_type == "technical":
             return self._handle_technical_query(query)
@@ -620,57 +696,6 @@ class AgriculturalAdvisorBot:
             else:
                 return intent_info + f"❌ Error processing weather query: {e}"
     
-    def _handle_price_query(self, query: str) -> str:
-        """Handle mandi price queries using LLM-based SQL generation."""
-        try:
-            # Step 1: Ask Groq to generate SQL
-            sql_query = self.groq_advisor.generate_sql(query).strip()
-
-            logger.info(f"Groq SQL: {sql_query}")
-
-            # Step 2: Try executing the SQL
-            conn = sqlite3.connect(self.db.db_path)
-            try:
-                results = conn.execute(sql_query).fetchall()
-            except Exception as e:
-                logger.warning(f"Groq SQL failed: {e}")
-                results = []
-
-            conn.close()
-
-            # Step 3: If Groq SQL worked
-            if results:
-                return self.groq_advisor.generate_general_advice(
-                    f"{query}\nData retrieved from the database:\n{results}\n"
-                    f"Please summarize this for farmers in simple words using the data retrieved."
-                )
-
-            # Step 4: Fallback → general safe query
-            else:
-                city = self.user_city(query)
-                crop = self.user_crop(query)
-                if not city or not crop:
-                    return "Please specify both city and crop for accurate price information."
-
-                fallback_results = self.get_latest_prices_all_markets(city, crop)
-                if not fallback_results:
-                    return f"No data found for {crop} in {city}."
-
-                formatted = "\n".join([
-                    f"{market}: ₹{price}/quintal ({date})"
-                    for market, date, price in fallback_results
-                ])
-                return self.groq_advisor.generate_general_advice(
-                    f"{query}. "
-                    f"Here’s price data for {crop} in {city}:\n{formatted}\n"
-                    f"Summarize in farmer-friendly advice."
-                )
-
-        except Exception as e:
-            logger.error(f"Error handling price query: {e}")
-            return "I could not fetch the price data right now. Please try again later."
-
-
     def _handle_policy_query(self, query: str) -> str:
         """Handle policy-related queries"""
         intent_info = f"🎯 **Detected Intent: Policy Query**\n\n"
@@ -822,6 +847,8 @@ class AgriculturalAdvisorBot:
     
     def _handle_price_query(self, query: str) -> str:
         """Handle price-related queries"""
+        print(f"💰 **PRICE QUERY HANDLER STARTED**")
+        print(f"💰 **Processing query: {query}**")
         intent_info = f"🎯 **Detected Intent: Price Query**\n\n"
         
         # Extract crop and location from query
@@ -837,10 +864,8 @@ class AgriculturalAdvisorBot:
         # Get specific crop price information
         price_info = self._get_crop_price_info(crop, location)
         
-        # Combine with AI-generated advice
-        ai_advice = self.groq_advisor.generate_general_advice(
-            f"Market price question: {query}. Based on the price data: {price_info}. Please provide additional market insights and pricing advice for farmers."
-        )
+        # Combine with AI-generated advice using the new concise method
+        ai_advice = self.groq_advisor.generate_price_advice(query, price_info)
         
         # Add source attribution
         sources = f"\n📚 **Sources:**\n"
@@ -866,7 +891,7 @@ class AgriculturalAdvisorBot:
                 break
         
         # Common locations (cities in our database)
-        locations = ["agra", "kannuj", "kanpur", "lucknow", "unnao", "mumbai", "delhi", "bangalore"]
+        locations = ["agra", "kannauj", "kanpur", "lucknow", "unnao", "mumbai", "delhi", "bangalore"]
         location = None
         for loc in locations:
             if loc in query_lower:
