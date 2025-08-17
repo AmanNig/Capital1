@@ -387,28 +387,52 @@ Agricultural Advice:"""
             logger.error(f"Error generating comprehensive weather advice: {e}")
             return f"❌ Error generating advice: {e}"
         
-    def generate_sql(self, user_query: str) -> str:
+    def generate_sql(self, user_query: str):
         """Translate natural language agricultural price queries into SQL"""
         if not self.api_key:
             return "❌ Groq API key not found."
         
         try:
             prompt = f"""
-    You are an assistant that translates natural language agricultural price questions into SQL queries.
-    The database is SQLite with a table `mandi_prices`.
+You are an assistant that translates natural language agricultural price questions into SQL queries.
+The database is SQLite with a table mandi_prices.
 
-    Columns:
-    - State (TEXT)
-    - District (TEXT)
-    - Market (TEXT)
-    - Commodity (TEXT)
-    - Variety (TEXT)
-    - Arrival_Date (TEXT in YYYY-MM-DD format)
-    - Min_Price (INTEGER)
-    - Max_Price (INTEGER)
-    - Modal_Price (INTEGER)
+Columns:
+- State (TEXT)
+- District (TEXT)
+- Market (TEXT)
+- Commodity (TEXT)
+- Variety (TEXT)
+- Arrival_Date (TEXT in YYYY-MM-DD format)
+- Min_Price (INTEGER)
+- Max_Price (INTEGER)
+- Modal_Price (INTEGER)
 
-    Return only SQL code without explanation.
+Rules:
+1. For comparative queries (e.g., "compare wheat prices in Kanpur vs Lucknow"):
+   - Do NOT use self-joins.
+   - Use WHERE District IN ('X','Y') and GROUP BY District.
+   - Return aggregated stats: AVG(Modal_Price), MAX(Modal_Price), MIN(Modal_Price).
+   - LIMIT 20 rows max.
+
+2. For *trend/time-series queries* (e.g., "price trend of rice in Lucknow over last month"):
+   - Use ORDER BY Arrival_Date.
+   - Return AVG(Modal_Price) grouped by Arrival_Date (daily or weekly).
+   - Limit to the last 30 records.
+
+3. For *best mandi / where to sell* queries (e.g., "which is the best mandi to sell wheat in Kanpur"):
+   - Use MAX(Modal_Price).
+   - ORDER BY Modal_Price DESC.
+   - LIMIT 1–5 markets.
+
+4. For *latest price queries* (e.g., "what is the price of wheat in Kanpur today"):
+   - ORDER BY Arrival_Date DESC.
+   - LIMIT 1.
+
+5. Always restrict output to at most 20 rows.
+6. Prefer aggregate queries (AVG, MAX, MIN) over raw rows.
+7. Return only SQL code, no explanation.
+
 
     User query: "{user_query}"
     """
@@ -432,6 +456,26 @@ Agricultural Advice:"""
         except Exception as e:
             logger.error(f"Error generating SQL: {e}")
             return f"❌ Error generating SQL: {e}"
+
+    def get_latest_prices_all_markets(self, city: str, crop: str, db_path="agri_data.db"):
+        """Get the most recent price entry for each market in a given city and crop"""
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        query = """
+        SELECT Market, MAX(Arrival_Date), Modal_Price
+        FROM mandi_prices
+        WHERE District LIKE ? AND Commodity LIKE ?
+        GROUP BY Market
+        ORDER BY MAX(Arrival_Date) DESC;
+        """
+
+        cursor.execute(query, (f"%{city}%", f"%{crop}%"))
+        results = cursor.fetchall()
+        conn.close()
+
+        # Returns list of (market, date, price)
+        return results
 
     
     def generate_general_advice(self, query: str, language: str = "English") -> str:
@@ -916,35 +960,64 @@ class AgriculturalAdvisorBot:
             logger.error(f"Error handling crop recommendation query: {e}")
             return f"❌ Error retrieving crop data: {str(e)}\n\n🤖 **General Crop Advice:**\n{self.groq_advisor.generate_general_advice(query, self.user_language)}"
     
-    def _handle_price_query(self, query: str) -> str:
-        """Handle price-related queries"""
-        print(f"💰 **PRICE QUERY HANDLER STARTED**")
-        print(f"💰 **Processing query: {query}**")
-        intent_info = f"🎯 **Detected Intent: Price Query**\n\n"
-        
-        # Extract crop and location from query
-        crop, location = self._extract_crop_and_location(query)
-        
-        if not location:
-            location = self.user_city or "Kanpur"  # Default to Kanpur if no city set
-        
-        if not crop:
-            # If no specific crop mentioned, provide general price information
-            return intent_info + self._get_general_price_info(location)
-        
-        # Get specific crop price information
-        price_info = self._get_crop_price_info(crop, location)
-        
-        # Combine with AI-generated advice using the new concise method
-        ai_advice = self.groq_advisor.generate_price_advice(query, price_info, self.user_language)
-        
-        # Add source attribution
-        sources = f"\n📚 **Sources:**\n"
-        sources += f"• Price Data: `mandi_prices.csv` (35,522 records)\n"
-        sources += f"• Database: `agri_data.db` (SQLite)\n"
-        sources += f"• AI Insights: Groq API (Llama3-8b-8192 model)\n"
-        
-        return intent_info + f"📊 **Price Information:**\n{price_info}\n\n🤖 **AI Market Insights:**\n{ai_advice}{sources}"
+    def _handle_price_query(self, query: str):
+        """Handle mandi price queries using LLM-based SQL generation."""
+        print("in _handle_price_query")
+        try:
+            # Step 1: Ask Groq to generate SQL
+            sql_query = self.groq_advisor.generate_sql(query).strip()
+
+            logger.info(f"Groq SQL: {sql_query}")
+            print("query:",sql_query)
+
+            # Step 2: Try executing the SQL
+            conn = sqlite3.connect("agri_data.db")
+            try:
+                results = conn.execute(sql_query).fetchall()
+            except Exception as e:
+                logger.warning(f"Groq SQL failed: {e}")
+                results = []
+
+            conn.close()
+
+            # Step 3: If Groq SQL worked
+            if results:
+
+                if len(results) > 50:
+                    results = results[:50]
+                    results.append(("...", "...", "..."))  # marker for truncation
+
+                    results = "\n".join([str(r) for r in results])
+
+                return self.groq_advisor.generate_general_advice(
+                    f"{query}\nData retrieved from the database:\n{results}\n"
+                    f"Please summarize this for farmers in simple words using the data retrieved.", self.user_language
+                )
+
+            # Step 4: Fallback → general safe query
+            else:
+                city = self.user_city
+                crop = self.user_crop
+                if not city or not crop:
+                    return "Please specify both city and crop for accurate price information."
+
+                fallback_results = self.groq_advisor.get_latest_prices_all_markets(city, crop)
+                if not fallback_results:
+                    return f"No data found for {crop} in {city}."
+
+                formatted = "\n".join([
+                    f"{market}: ₹{price}/quintal ({date})"
+                    for market, date, price in fallback_results
+                ])
+                return self.groq_advisor.generate_general_advice(
+                    f"{query}. "
+                    f"Here's price data for {crop} in {city}:\n{formatted}\n"
+                    f"Summarize in farmer-friendly advice.", self.user_language
+                )
+
+        except Exception as e:
+            logger.error(f"Error handling price query: {e}")
+            return "I could not fetch the price data right now. Please try again later."
     
     def _extract_crop_and_location(self, query: str) -> tuple:
         """Extract crop and location from query"""
