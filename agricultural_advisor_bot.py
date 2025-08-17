@@ -442,8 +442,11 @@ class AgriculturalAdvisorBot:
         # Initialize agricultural data manager
         self.data_manager = AgriculturalDataManager()
         
+        # User preferences
         self.user_city = None
         self.user_crop = None
+        self.user_language = "English"  # Default language
+        self.is_initialized = False  # Track if user has completed initial setup
 
     def get_latest_prices_all_markets(self, city: str, crop: str, db_path="agri_data.db"):
         """Get the most recent price entry for each market in a given city and crop"""
@@ -468,6 +471,10 @@ class AgriculturalAdvisorBot:
     
     def process_query(self, query: str) -> str:
         """Process user query and provide appropriate response"""
+        # Check if user is initialized (except for help and setup commands)
+        if not self.is_user_initialized() and not any(cmd in query.lower() for cmd in ['help', 'city', 'crop', 'language', 'stats']):
+            return "🎯 **Setup Required**\n\n📍 Please complete the initial setup first. Use 'help' to see available commands."
+        
         # Classify the query
         query_type = self.classifier.classify_query(query)
         
@@ -490,8 +497,8 @@ class AgriculturalAdvisorBot:
         """Handle weather-related queries"""
         intent_info = f"🎯 **Detected Intent: Weather Query**\n\n"
         
-        if not self.user_city:
-            return intent_info + "📍 Please set your city first using: 'city [cityname]' (e.g., 'city Mumbai')"
+        if not self.is_user_initialized():
+            return intent_info + "📍 Please complete the initial setup first. Use 'help' to see available commands."
         
         try:
             # Get comprehensive weather report using the existing weather service
@@ -551,11 +558,16 @@ class AgriculturalAdvisorBot:
                     response += "• Current weather data available but format may vary\n\n"
             
             # Forecast summary
-            if forecast_data:
+            if forecast_data and len(forecast_data) > 0:
                 response += f"📅 **7-Day Forecast Summary:**\n"
                 try:
-                    avg_temp = sum([f.get('temperature', {}).get('avg', 0) for f in forecast_data]) / len(forecast_data)
-                    total_precip = sum([f.get('precipitation', {}).get('amount', 0) for f in forecast_data])
+                    # Safe division to prevent division by zero
+                    temp_values = [f.get('temperature', {}).get('avg', 0) for f in forecast_data]
+                    precip_values = [f.get('precipitation', {}).get('amount', 0) for f in forecast_data]
+                    
+                    avg_temp = sum(temp_values) / len(temp_values) if temp_values else 0
+                    total_precip = sum(precip_values) if precip_values else 0
+                    
                     response += f"• Average Temperature: {avg_temp:.1f}°C\n"
                     response += f"• Total Precipitation: {total_precip:.1f} mm\n"
                     
@@ -601,13 +613,12 @@ class AgriculturalAdvisorBot:
             
         except Exception as e:
             logger.error(f"Error handling weather query: {e}")
-            return intent_info + f"❌ Error processing weather query: {e}"
-            
-            return response + sources
-            
-        except Exception as e:
-            logger.error(f"Error handling weather query: {e}")
-            return f"❌ Error processing weather query: {e}"
+            if "division by zero" in str(e).lower():
+                return intent_info + "❌ Weather data is currently unavailable. Please try again later or check your internet connection."
+            elif "timeout" in str(e).lower() or "connection" in str(e).lower():
+                return intent_info + "❌ Weather service is temporarily unavailable. Please try again in a few minutes."
+            else:
+                return intent_info + f"❌ Error processing weather query: {e}"
     
     def _handle_price_query(self, query: str) -> str:
         """Handle mandi price queries using LLM-based SQL generation."""
@@ -936,17 +947,45 @@ class AgriculturalAdvisorBot:
     def set_user_city(self, city: str) -> str:
         """Set user's city for weather queries"""
         self.user_city = city
+        self.is_initialized = True  # Mark as initialized when city is set
         return f"✅ City set to: {city}\n🌤️ Now I can provide weather-based agricultural advice for your area!"
     
     def get_user_city(self) -> str:
         """Get current user city"""
         return self.user_city or "Not set"
     
+    def set_user_crop(self, crop: str) -> str:
+        """Set user's primary crop"""
+        self.user_crop = crop
+        return f"✅ Primary crop set to: {crop}\n🌾 I'll provide crop-specific advice for {crop}!"
+    
+    def get_user_crop(self) -> str:
+        """Get current user crop"""
+        return self.user_crop or "Not set"
+    
+    def set_user_language(self, language: str) -> str:
+        """Set user's preferred language"""
+        self.user_language = language
+        return f"✅ Language set to: {language}\n🌍 I'll communicate in {language}!"
+    
+    def get_user_language(self) -> str:
+        """Get current user language"""
+        return self.user_language or "English"
+    
+    def is_user_initialized(self) -> bool:
+        """Check if user has completed initial setup"""
+        return self.is_initialized and self.user_city is not None
+    
     def run_interactive(self):
         """Run interactive agricultural advisor bot"""
         print("=" * 80)
         print("🌾 AGRICULTURAL ADVISOR BOT 🌾")
         print("=" * 80)
+        
+        # Check if user needs to complete initial setup
+        if not self.is_user_initialized():
+            self._run_initial_setup()
+        
         print("🤖 I'm your AI agricultural advisor! I can help you with:")
         print("   • Weather-based farming advice")
         print("   • Government policy information")
@@ -954,8 +993,10 @@ class AgriculturalAdvisorBot:
         print("   • Technical support and equipment")
         print("   • General agricultural guidance")
         print("   • Crop and soil management tips")
-        print("\n💡 Commands: 'city', 'stats', 'help', 'quit'")
-        print("\n🌤️ For weather advice: First set your city with 'city [cityname]', then ask weather questions!")
+        print("\n💡 Commands: 'city', 'crop', 'language', 'stats', 'help', 'quit'")
+        print(f"\n📍 Your location: {self.get_user_city()}")
+        print(f"🌾 Your crop: {self.get_user_crop()}")
+        print(f"🌍 Your language: {self.get_user_language()}")
         print("-" * 80)
         
         while True:
@@ -975,12 +1016,11 @@ class AgriculturalAdvisorBot:
                 elif user_input.lower().startswith('city'):
                     self._handle_city_command(user_input)
                 
-                # Handle direct city input (when user just types city name)
-                elif not self.user_city and len(user_input.split()) <= 2 and not any(word in user_input.lower() for word in ['weather', 'rain', 'temperature', 'forecast', 'hot', 'cold', 'sunny', 'cloudy', 'wind', 'humidity']):
-                    # If no city is set and user inputs what looks like a city name (not weather-related words)
-                    response = self.set_user_city(user_input)
-                    print(f"🤖 Advisor: {response}")
-                    continue
+                elif user_input.lower().startswith('crop'):
+                    self._handle_crop_command(user_input)
+                
+                elif user_input.lower().startswith('language'):
+                    self._handle_language_command(user_input)
                 
                 elif user_input:
                     print("🔄 Processing your query...")
@@ -1003,13 +1043,11 @@ class AgriculturalAdvisorBot:
         print("\n📖 **Agricultural Advisor Bot Help**")
         print("=" * 50)
         print("🌤️ **Weather Queries:**")
-        print("  Step 1: Set your city - 'city Mumbai'")
-        print("  Step 2: Ask weather questions:")
-        print("    - 'How does this weather affect my wheat crop?'")
-        print("    - 'Should I irrigate today?'")
-        print("    - 'Is this good weather for planting?'")
-        print("    - 'How to protect crops from heat wave?'")
-        print("    - 'Will it rain tomorrow?'")
+        print("  - 'How does this weather affect my wheat crop?'")
+        print("  - 'Should I irrigate today?'")
+        print("  - 'Is this good weather for planting?'")
+        print("  - 'How to protect crops from heat wave?'")
+        print("  - 'Will it rain tomorrow?'")
         
         print("\n📋 **Policy Queries:**")
         print("  - 'What is PM Kisan scheme?'")
@@ -1025,15 +1063,24 @@ class AgriculturalAdvisorBot:
         
         print("\n🔧 **Commands:**")
         print("  - 'city [cityname]': Set your city for weather advice")
+        print("  - 'crop [cropname]': Set your primary crop")
+        print("  - 'language [language]': Set your preferred language")
         print("  - 'stats': Show system statistics")
         print("  - 'help': Show this help")
         print("  - 'quit': Exit the bot")
+        
+        print(f"\n📍 **Your Current Settings:**")
+        print(f"  - Location: {self.get_user_city()}")
+        print(f"  - Primary Crop: {self.get_user_crop()}")
+        print(f"  - Language: {self.get_user_language()}")
     
     def _show_stats(self):
         """Show system statistics"""
         print("\n📊 **System Statistics**")
         print("=" * 30)
         print(f"🏙️ User City: {self.get_user_city()}")
+        print(f"🌾 User Crop: {self.get_user_crop()}")
+        print(f"🌍 User Language: {self.get_user_language()}")
         
         if self.policy_chatbot.is_loaded:
             stats = self.policy_chatbot.get_statistics()
@@ -1047,6 +1094,70 @@ class AgriculturalAdvisorBot:
         print(f"🤖 AI Advisor: {'Available' if self.groq_advisor.api_key else 'API key needed'}")
         print(f"📊 Agricultural Data: ✅ Available (Prices & Soil)")
     
+    def _run_initial_setup(self):
+        """Run initial setup to get user preferences"""
+        print("\n🎯 **WELCOME TO AGRICULTURAL ADVISOR BOT** 🎯")
+        print("=" * 60)
+        print("Before we start, I need to know your location to provide")
+        print("personalized agricultural advice!")
+        print("=" * 60)
+        
+        # Get location (mandatory)
+        while not self.user_city:
+            try:
+                city_input = input("\n📍 Please enter your city/location: ").strip()
+                if city_input:
+                    response = self.set_user_city(city_input)
+                    print(f"🤖 Advisor: {response}")
+                else:
+                    print("❌ City is required. Please enter a valid city name.")
+            except KeyboardInterrupt:
+                print("\n👋 Setup cancelled. Goodbye!")
+                exit(0)
+        
+        # Get crop (optional)
+        try:
+            crop_input = input("\n🌾 Enter your primary crop (optional, press Enter to skip): ").strip()
+            if crop_input:
+                response = self.set_user_crop(crop_input)
+                print(f"🤖 Advisor: {response}")
+            else:
+                print("🤖 Advisor: No crop set. You can set it later with 'crop [cropname]'")
+        except KeyboardInterrupt:
+            print("\n👋 Setup cancelled. Goodbye!")
+            exit(0)
+        
+        # Get language (optional)
+        try:
+            print("\n🌍 Available languages:")
+            print("   • English (default)")
+            print("   • Hindi")
+            print("   • Marathi")
+            print("   • Gujarati")
+            print("   • Bengali")
+            print("   • Tamil")
+            print("   • Telugu")
+            print("   • Kannada")
+            print("   • Malayalam")
+            print("   • Punjabi")
+            
+            lang_input = input("\n🌍 Choose your preferred language (optional, press Enter for English): ").strip()
+            if lang_input:
+                response = self.set_user_language(lang_input)
+                print(f"🤖 Advisor: {response}")
+            else:
+                print("🤖 Advisor: Language set to English (default)")
+        except KeyboardInterrupt:
+            print("\n👋 Setup cancelled. Goodbye!")
+            exit(0)
+        
+        print("\n✅ Setup complete! You're ready to start!")
+        print("💡 You can change these settings anytime using:")
+        print("   • 'city [cityname]' - Change location")
+        print("   • 'crop [cropname]' - Change primary crop")
+        print("   • 'language [language]' - Change language")
+        print("-" * 60)
+    
     def _handle_city_command(self, command: str):
         """Handle city setting command"""
         parts = command.split(' ', 1)
@@ -1057,6 +1168,29 @@ class AgriculturalAdvisorBot:
         else:
             print(f"🤖 Advisor: Current city: {self.get_user_city()}")
             print("💡 To set city: 'city [cityname]' (e.g., 'city Mumbai')")
+    
+    def _handle_crop_command(self, command: str):
+        """Handle crop setting command"""
+        parts = command.split(' ', 1)
+        if len(parts) > 1:
+            crop = parts[1].strip()
+            response = self.set_user_crop(crop)
+            print(f"🤖 Advisor: {response}")
+        else:
+            print(f"🤖 Advisor: Current crop: {self.get_user_crop()}")
+            print("💡 To set crop: 'crop [cropname]' (e.g., 'crop wheat')")
+    
+    def _handle_language_command(self, command: str):
+        """Handle language setting command"""
+        parts = command.split(' ', 1)
+        if len(parts) > 1:
+            language = parts[1].strip()
+            response = self.set_user_language(language)
+            print(f"🤖 Advisor: {response}")
+        else:
+            print(f"🤖 Advisor: Current language: {self.get_user_language()}")
+            print("💡 To set language: 'language [language]' (e.g., 'language Hindi')")
+            print("🌍 Available languages: English, Hindi, Marathi, Gujarati, Bengali, Tamil, Telugu, Kannada, Malayalam, Punjabi")
 
 def main():
     """Main function"""
@@ -1066,13 +1200,22 @@ def main():
     parser.add_argument("--interactive", action="store_true", help="Run interactive mode")
     parser.add_argument("--query", type=str, help="Process a single query")
     parser.add_argument("--city", type=str, help="Set default city")
+    parser.add_argument("--crop", type=str, help="Set default crop")
+    parser.add_argument("--language", type=str, help="Set default language")
     
     args = parser.parse_args()
     
     bot = AgriculturalAdvisorBot()
     
+    # Set default values if provided
     if args.city:
         print(bot.set_user_city(args.city))
+    
+    if args.crop:
+        print(bot.set_user_crop(args.crop))
+    
+    if args.language:
+        print(bot.set_user_language(args.language))
     
     if args.query:
         print(f"🌾 Query: {args.query}")

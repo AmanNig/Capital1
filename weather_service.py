@@ -166,36 +166,53 @@ class WeatherService:
         if not location_info:
             return []
         
-        try:
-            # Calculate date range
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=days)
-            
-            # Use Open-Meteo for historical data (free, no API key)
-            url = f"{self.apis['openmeteo']['base_url']}/forecast"
-            
-            params = {
-                'latitude': location_info.latitude,
-                'longitude': location_info.longitude,
-                'hourly': 'temperature_2m,relative_humidity_2m,precipitation,windspeed_10m,winddirection_10m,pressure_msl,visibility,uv_index',
-                'daily': 'temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,windspeed_10m_max,winddirection_10m_dominant',
-                'timezone': location_info.timezone,
-                'start_date': start_date.strftime('%Y-%m-%d'),
-                'end_date': end_date.strftime('%Y-%m-%d')
-            }
-            
-            response = requests.get(url, params=params, timeout=15)
-            
-            if response.status_code == 200:
-                data = response.json()
-                return self._parse_historical_data(data, location_info)
-            else:
-                logger.error(f"Failed to fetch historical weather: {response.status_code}")
-                return []
+        # Calculate date range
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Use Open-Meteo for historical data (free, no API key)
+        url = f"{self.apis['openmeteo']['base_url']}/forecast"
+        
+        params = {
+            'latitude': location_info.latitude,
+            'longitude': location_info.longitude,
+            'hourly': 'temperature_2m,relative_humidity_2m,precipitation,windspeed_10m,winddirection_10m,pressure_msl,visibility,uv_index',
+            'daily': 'temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,windspeed_10m_max,winddirection_10m_dominant',
+            'timezone': location_info.timezone,
+            'start_date': start_date.strftime('%Y-%m-%d'),
+            'end_date': end_date.strftime('%Y-%m-%d')
+        }
+        
+        # Add retry logic for better reliability
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(url, params=params, timeout=15)
                 
-        except Exception as e:
-            logger.error(f"Error fetching historical weather: {e}")
-            return []
+                if response.status_code == 200:
+                    data = response.json()
+                    return self._parse_historical_data(data, location_info)
+                else:
+                    logger.error(f"Failed to fetch historical weather: {response.status_code}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)  # Wait before retry
+                        continue
+                    return []
+                    
+            except requests.exceptions.Timeout:
+                logger.warning(f"Timeout on attempt {attempt + 1}/{max_retries}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)  # Wait before retry
+                    continue
+                return []
+            except Exception as e:
+                logger.error(f"Error fetching historical weather: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)  # Wait before retry
+                    continue
+                return []
+        
+        return []
     
     def _parse_historical_data(self, data: Dict, location_info: LocationInfo) -> List[WeatherData]:
         """Parse historical weather data from API response"""
@@ -293,31 +310,48 @@ class WeatherService:
         if not location_info:
             return []
         
-        try:
-            # Use Open-Meteo for forecast data
-            url = f"{self.apis['openmeteo']['base_url']}/forecast"
-            
-            params = {
-                'latitude': location_info.latitude,
-                'longitude': location_info.longitude,
-                'hourly': 'temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,windspeed_10m,winddirection_10m,pressure_msl,uv_index',
-                'daily': 'temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_probability_max,precipitation_sum,windspeed_10m_max,winddirection_10m_dominant',
-                'timezone': location_info.timezone,
-                'forecast_days': days
-            }
-            
-            response = requests.get(url, params=params, timeout=15)
-            
-            if response.status_code == 200:
-                data = response.json()
-                return self._parse_forecast_data(data, location_info)
-            else:
-                logger.error(f"Failed to fetch weather forecast: {response.status_code}")
-                return []
+        # Use Open-Meteo for forecast data
+        url = f"{self.apis['openmeteo']['base_url']}/forecast"
+        
+        params = {
+            'latitude': location_info.latitude,
+            'longitude': location_info.longitude,
+            'hourly': 'temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,windspeed_10m,winddirection_10m,pressure_msl,uv_index',
+            'daily': 'temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_probability_max,precipitation_sum,windspeed_10m_max,winddirection_10m_dominant',
+            'timezone': location_info.timezone,
+            'forecast_days': days
+        }
+        
+        # Add retry logic for better reliability
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(url, params=params, timeout=15)
                 
-        except Exception as e:
-            logger.error(f"Error fetching weather forecast: {e}")
-            return []
+                if response.status_code == 200:
+                    data = response.json()
+                    return self._parse_forecast_data(data, location_info)
+                else:
+                    logger.error(f"Failed to fetch weather forecast: {response.status_code}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)  # Wait before retry
+                        continue
+                    return []
+                    
+            except requests.exceptions.Timeout:
+                logger.warning(f"Timeout on forecast attempt {attempt + 1}/{max_retries}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)  # Wait before retry
+                    continue
+                return []
+            except Exception as e:
+                logger.error(f"Error fetching weather forecast: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)  # Wait before retry
+                    continue
+                return []
+        
+        return []
     
     def _parse_forecast_data(self, data: Dict, location_info: LocationInfo) -> List[WeatherForecast]:
         """Parse forecast weather data from API response"""
@@ -465,8 +499,9 @@ class WeatherService:
     def _analyze_soil_moisture(self, historical: List[WeatherData], 
                              forecast: List[WeatherForecast]) -> Dict[str, Any]:
         """Analyze soil moisture conditions"""
-        recent_precip = sum([h.precipitation for h in historical[-7:]])  # Last 7 days
-        forecast_precip = sum([f.precipitation_amount for f in forecast])
+        recent_historical = historical[-7:] if len(historical) >= 7 else historical
+        recent_precip = sum([h.precipitation for h in recent_historical]) if recent_historical else 0  # Last 7 days
+        forecast_precip = sum([f.precipitation_amount for f in forecast]) if forecast else 0
         
         total_precip = recent_precip + forecast_precip
         
@@ -494,8 +529,8 @@ class WeatherService:
     def _analyze_crop_health(self, historical: List[WeatherData], 
                            forecast: List[WeatherForecast]) -> Dict[str, Any]:
         """Analyze crop health based on weather conditions"""
-        avg_temp = sum([h.temperature_avg for h in historical]) / len(historical)
-        avg_humidity = sum([h.humidity for h in historical]) / len(historical)
+        avg_temp = sum([h.temperature_avg for h in historical]) / len(historical) if historical else 0
+        avg_humidity = sum([h.humidity for h in historical]) / len(historical) if historical else 0
         
         # Temperature stress analysis
         if avg_temp > 35:
@@ -530,8 +565,9 @@ class WeatherService:
     def _analyze_irrigation_needs(self, historical: List[WeatherData], 
                                 forecast: List[WeatherForecast]) -> Dict[str, Any]:
         """Analyze irrigation requirements"""
-        recent_precip = sum([h.precipitation for h in historical[-3:]])  # Last 3 days
-        forecast_precip = sum([f.precipitation_amount for f in forecast[:3]])  # Next 3 days
+        recent_historical = historical[-3:] if len(historical) >= 3 else historical
+        recent_precip = sum([h.precipitation for h in recent_historical]) if recent_historical else 0  # Last 3 days
+        forecast_precip = sum([f.precipitation_amount for f in forecast[:3]]) if forecast else 0  # Next 3 days
         
         total_water = recent_precip + forecast_precip
         
@@ -560,8 +596,8 @@ class WeatherService:
     def _analyze_pest_risk(self, historical: List[WeatherData], 
                           forecast: List[WeatherForecast]) -> Dict[str, Any]:
         """Analyze pest risk based on weather conditions"""
-        avg_temp = sum([h.temperature_avg for h in historical]) / len(historical)
-        avg_humidity = sum([h.humidity for h in historical]) / len(historical)
+        avg_temp = sum([h.temperature_avg for h in historical]) / len(historical) if historical else 0
+        avg_humidity = sum([h.humidity for h in historical]) / len(historical) if historical else 0
         
         # Pest risk assessment
         if avg_temp > 25 and avg_humidity > 70:
@@ -608,8 +644,9 @@ class WeatherService:
         recommendations = []
         
         # Analyze recent conditions
-        recent_temp = sum([h.temperature_avg for h in historical[-7:]]) / 7
-        recent_precip = sum([h.precipitation for h in historical[-7:]])
+        recent_historical = historical[-7:] if len(historical) >= 7 else historical
+        recent_temp = sum([h.temperature_avg for h in recent_historical]) / len(recent_historical) if recent_historical else 0
+        recent_precip = sum([h.precipitation for h in recent_historical]) if recent_historical else 0
         
         # Temperature-based recommendations
         if recent_temp > 30:
@@ -763,11 +800,11 @@ def main():
     
     # Display historical summary
     historical = report['historical_data']
-    if historical:
+    if historical and len(historical) > 0:
         print("Historical Weather Summary (Past 20 Days):")
         print("-" * 40)
-        avg_temp = sum([h['temperature']['avg'] for h in historical]) / len(historical)
-        total_precip = sum([h['precipitation'] for h in historical])
+        avg_temp = sum([h['temperature']['avg'] for h in historical]) / len(historical) if historical else 0
+        total_precip = sum([h['precipitation'] for h in historical]) if historical else 0
         print(f"Average Temperature: {avg_temp:.1f}°C")
         print(f"Total Precipitation: {total_precip:.1f} mm")
         print()
