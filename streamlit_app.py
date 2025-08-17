@@ -9,7 +9,6 @@ import os
 import sys
 from pathlib import Path
 
-# Add the current directory to Python path to import our modules
 sys.path.append(str(Path(__file__).parent))
 
 try:
@@ -22,60 +21,116 @@ except ImportError as e:
 
 # Page configuration
 st.set_page_config(
-    page_title="🌾 Agricultural Advisor Bot",
+    page_title="Agricultural Advisor Bot",
     page_icon="🌾",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# Custom CSS for better styling
+# Clean CSS styling
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
+    .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .header-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
         text-align: center;
-        color: #2E8B57;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .info-section {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border-left: 4px solid #28a745;
         margin-bottom: 2rem;
     }
-    .sub-header {
-        font-size: 1.5rem;
-        color: #228B22;
-        margin-bottom: 1rem;
+    
+    .chat-container {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
     }
-    .info-box {
-        background-color: #f0f8ff;
+    
+    .message {
         padding: 1rem;
-        border-radius: 0.5rem;
-        border-left: 4px solid #2E8B57;
         margin: 1rem 0;
+        border-radius: 10px;
+        max-width: 80%;
     }
-    .metric-card {
-        background-color: #ffffff;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        text-align: center;
-        margin: 0.5rem;
-    }
-    .chat-message {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 0.5rem 0;
-    }
+    
     .user-message {
-        background-color: #e3f2fd;
+        background: #e3f2fd;
         border-left: 4px solid #2196f3;
+        margin-left: auto;
     }
+    
     .bot-message {
-        background-color: #f1f8e9;
+        background: #f1f8e9;
         border-left: 4px solid #4caf50;
     }
-    .language-selector {
-        background-color: #fff3e0;
-        padding: 0.5rem;
-        border-radius: 0.5rem;
+    
+    .input-area {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+    }
+    
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
         margin: 1rem 0;
+    }
+    
+    .feature-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        text-align: center;
+    }
+    
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 0.5rem 2rem;
+        font-weight: bold;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.875rem;
+        font-weight: bold;
+    }
+    
+    .status-online {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-offline {
+        background: #f8d7da;
+        color: #721c24;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -85,402 +140,215 @@ if 'bot' not in st.session_state:
     st.session_state.bot = None
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
-if 'user_city' not in st.session_state:
-    st.session_state.user_city = ""
-if 'user_crop' not in st.session_state:
-    st.session_state.user_crop = ""
-if 'user_language' not in st.session_state:
-    st.session_state.user_language = "English"
 
 def initialize_bot():
-    """Initialize the agricultural advisor bot"""
+    """Initialize the agricultural advisor bot with default settings"""
     try:
-        with st.spinner("Initializing Agricultural Advisor Bot..."):
+        if st.session_state.bot is None:
             bot = AgriculturalAdvisorBot()
+            # Set default values to avoid initialization issues
+            bot.user_city = "Kanpur"  # Default city
+            bot.user_crop = "Wheat"   # Default crop
+            bot.user_language = "English"  # Default language
+            bot.is_initialized = True  # Mark as initialized
             st.session_state.bot = bot
-            st.success("✅ Bot initialized successfully!")
-            return bot
+        return True
     except Exception as e:
-        st.error(f"❌ Error initializing bot: {e}")
-        return None
+        st.error(f"Error initializing bot: {e}")
+        return False
 
-def get_database_stats():
-    """Get statistics from the database"""
+def process_query_with_fallback(query: str) -> str:
+    """Process query with fallback handling for setup issues"""
     try:
-        conn = sqlite3.connect('agri_data.db')
-        cursor = conn.cursor()
+        if not st.session_state.bot:
+            return "❌ Bot not initialized. Please start the bot first."
         
-        # Get price records count
-        cursor.execute('SELECT COUNT(*) FROM mandi_prices')
-        price_count = cursor.fetchone()[0]
+        # Try to process the query normally
+        response = st.session_state.bot.process_query(query)
         
-        # Get soil records count
-        cursor.execute('SELECT COUNT(*) FROM soil_health')
-        soil_count = cursor.fetchone()[0]
-        
-        # Get unique crops
-        cursor.execute('SELECT COUNT(DISTINCT Commodity) FROM mandi_prices')
-        unique_crops = cursor.fetchone()[0]
-        
-        # Get unique markets
-        cursor.execute('SELECT COUNT(DISTINCT Market) FROM mandi_prices')
-        unique_markets = cursor.fetchone()[0]
-        
-        conn.close()
-        
-        return {
-            'price_records': price_count,
-            'soil_records': soil_count,
-            'unique_crops': unique_crops,
-            'unique_markets': unique_markets
-        }
-    except Exception as e:
-        st.error(f"Error accessing database: {e}")
-        return None
-
-def get_policy_stats():
-    """Get policy database statistics"""
-    try:
-        if os.path.exists('improved_vector_db/metadata.json'):
-            with open('improved_vector_db/metadata.json', 'r') as f:
-                metadata = json.load(f)
-            return {
-                'total_sections': metadata.get('total_sections', 0),
-                'total_documents': metadata.get('total_documents', 0)
-            }
-        return None
-    except Exception as e:
-        st.error(f"Error accessing policy database: {e}")
-        return None
-
-def create_price_chart(city, crop):
-    """Create a price trend chart"""
-    try:
-        conn = sqlite3.connect('agri_data.db')
-        query = """
-        SELECT Arrival_Date, AVG(Modal_Price) as avg_price, COUNT(*) as count
-        FROM mandi_prices 
-        WHERE District LIKE ? AND Commodity LIKE ?
-        GROUP BY Arrival_Date
-        ORDER BY Arrival_Date DESC
-        LIMIT 30
-        """
-        
-        df = pd.read_sql_query(query, conn, params=(f"%{city}%", f"%{crop}%"))
-        conn.close()
-        
-        if df.empty:
-            return None
+        # Check if response indicates setup is required
+        if "Setup Required" in response or "complete the initial setup" in response:
+            # Extract information from the query and set it automatically
+            query_lower = query.lower()
             
-        df['Arrival_Date'] = pd.to_datetime(df['Arrival_Date'])
-        df = df.sort_values('Arrival_Date')
+            # Try to extract city from query
+            cities = ['mumbai', 'delhi', 'bangalore', 'chennai', 'kolkata', 'hyderabad', 'pune', 'kanpur', 'lucknow', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 'patna', 'vadodara', 'ghaziabad', 'ludhiana', 'agra', 'nashik']
+            for city in cities:
+                if city in query_lower:
+                    st.session_state.bot.user_city = city.title()
+                    break
+            
+            # Try to extract crop from query
+            crops = ['wheat', 'rice', 'corn', 'maize', 'sugarcane', 'cotton', 'pulses', 'oilseeds', 'vegetables', 'fruits', 'tomato', 'potato', 'onion', 'chilli', 'turmeric', 'ginger']
+            for crop in crops:
+                if crop in query_lower:
+                    st.session_state.bot.user_crop = crop.title()
+                    break
+            
+            # Mark as initialized
+            st.session_state.bot.is_initialized = True
+            
+            # Try processing again
+            response = st.session_state.bot.process_query(query)
         
-        fig = px.line(df, x='Arrival_Date', y='avg_price', 
-                     title=f'Price Trend for {crop} in {city}',
-                     labels={'avg_price': 'Average Price (₹/quintal)', 'Arrival_Date': 'Date'})
-        fig.update_layout(height=400)
-        return fig
+        return response
+        
     except Exception as e:
-        st.error(f"Error creating price chart: {e}")
-        return None
+        return f"❌ Error processing query: {str(e)}"
 
 def main():
-    # Main header
-    st.markdown('<h1 class="main-header">🌾 Agricultural Advisor Bot</h1>', unsafe_allow_html=True)
-    st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">Empowering Indian Farmers with AI-Powered Agricultural Intelligence</p>', unsafe_allow_html=True)
+    # Main container
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
     
-    # Sidebar
-    with st.sidebar:
-        st.markdown("### 🛠️ Configuration")
-        
-        # Language selection
-        st.markdown('<div class="language-selector">', unsafe_allow_html=True)
-        language = st.selectbox(
-            "🌍 Select Language",
-            ["English", "Hindi"],
-            index=0 if st.session_state.user_language == "English" else 1
-        )
-        st.session_state.user_language = language
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # User preferences
-        st.markdown("### 👤 User Preferences")
-        city = st.text_input("🏙️ Your City", value=st.session_state.user_city, placeholder="e.g., Kanpur, Mumbai")
-        if city:
-            st.session_state.user_city = city
-            
-        crop = st.text_input("🌾 Primary Crop", value=st.session_state.user_crop, placeholder="e.g., Wheat, Rice")
-        if crop:
-            st.session_state.user_crop = crop
-        
-        # Initialize bot button
-        if st.button("🚀 Initialize Bot", type="primary"):
-            bot = initialize_bot()
-            if bot:
-                st.session_state.bot = bot
-        
-        # System status
-        st.markdown("### 📊 System Status")
-        if st.session_state.bot:
-            st.success("✅ Bot Active")
-        else:
-            st.error("❌ Bot Not Initialized")
-        
-        # Database stats
-        db_stats = get_database_stats()
-        if db_stats:
-            st.metric("Price Records", f"{db_stats['price_records']:,}")
-            st.metric("Soil Records", f"{db_stats['soil_records']:,}")
-            st.metric("Unique Crops", db_stats['unique_crops'])
-            st.metric("Markets", db_stats['unique_markets'])
-        
-        # Policy stats
-        policy_stats = get_policy_stats()
-        if policy_stats:
-            st.metric("Policy Sections", policy_stats['total_sections'])
-            st.metric("Documents", policy_stats['total_documents'])
+    # Header section
+    st.markdown("""
+    <div class="header-section">
+        <h1>🌾 Agricultural Advisor Bot</h1>
+        <p style="font-size: 1.2rem; margin: 0;">Your AI-powered farming companion</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Main content area
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["💬 Chat", "📊 Analytics", "🌤️ Weather", "📋 Policies", "ℹ️ About"])
-    
-    with tab1:
-        st.markdown('<h2 class="sub-header">💬 Interactive Chat</h2>', unsafe_allow_html=True)
-        
-        if not st.session_state.bot:
-            st.warning("Please initialize the bot first using the sidebar button.")
-            return
-        
-        # Chat interface
-        st.markdown("### Ask your agricultural questions:")
-        
-        # Query input
-        if language == "Hindi":
-            placeholder = "उदाहरण: गेहूं का भाव क्या है? मौसम कैसा है?"
-        else:
-            placeholder = "Example: What is the wheat price? How is the weather?"
-        
-        user_query = st.text_area("Your Question", placeholder=placeholder, height=100)
-        
-        col1, col2 = st.columns([1, 4])
-        with col1:
-            if st.button("🚀 Ask", type="primary"):
-                if user_query.strip():
-                    # Add user message to chat history
-                    st.session_state.chat_history.append({
-                        'role': 'user',
-                        'content': user_query,
-                        'timestamp': datetime.now()
-                    })
-                    
-                    # Get bot response
-                    with st.spinner("🤖 Processing your query..."):
-                        try:
-                            # Set user preferences
-                            if st.session_state.user_city:
-                                st.session_state.bot.set_user_city(st.session_state.user_city)
-                            if st.session_state.user_crop:
-                                st.session_state.bot.set_user_crop(st.session_state.user_crop)
-                            if st.session_state.user_language:
-                                st.session_state.bot.set_user_language(st.session_state.user_language)
-                            
-                            response = st.session_state.bot.process_query(user_query)
-                            
-                            # Add bot response to chat history
-                            st.session_state.chat_history.append({
-                                'role': 'bot',
-                                'content': response,
-                                'timestamp': datetime.now()
-                            })
-                            
-                        except Exception as e:
-                            error_msg = f"Error processing query: {e}"
-                            st.session_state.chat_history.append({
-                                'role': 'bot',
-                                'content': error_msg,
-                                'timestamp': datetime.now()
-                            })
-        
-        with col2:
-            if st.button("🗑️ Clear Chat"):
-                st.session_state.chat_history = []
-                st.rerun()
-        
-        # Display chat history
-        st.markdown("### Chat History")
-        if st.session_state.chat_history:
-            for message in st.session_state.chat_history:
-                if message['role'] == 'user':
-                    st.markdown(f"""
-                    <div class="chat-message user-message">
-                        <strong>👤 You:</strong> {message['content']}
-                        <br><small>{message['timestamp'].strftime('%H:%M:%S')}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.markdown(f"""
-                    <div class="chat-message bot-message">
-                        <strong>🤖 Bot:</strong> {message['content']}
-                        <br><small>{message['timestamp'].strftime('%H:%M:%S')}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-        else:
-            st.info("No messages yet. Start a conversation!")
-    
-    with tab2:
-        st.markdown('<h2 class="sub-header">📊 Agricultural Analytics</h2>', unsafe_allow_html=True)
-        
-        # Price analytics
-        st.markdown("### 💰 Price Analytics")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            chart_city = st.text_input("City for Chart", value=st.session_state.user_city or "Kanpur")
-        with col2:
-            chart_crop = st.text_input("Crop for Chart", value=st.session_state.user_crop or "Wheat")
-        
-        if st.button("📈 Generate Price Chart"):
-            chart = create_price_chart(chart_city, chart_crop)
-            if chart:
-                st.plotly_chart(chart, use_container_width=True)
-            else:
-                st.warning("No data available for the selected city and crop.")
-        
-        # Database insights
-        st.markdown("### 📊 Database Insights")
-        db_stats = get_database_stats()
-        if db_stats:
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("Total Price Records", f"{db_stats['price_records']:,}")
-            with col2:
-                st.metric("Soil Health Records", f"{db_stats['soil_records']:,}")
-            with col3:
-                st.metric("Unique Crops", db_stats['unique_crops'])
-            with col4:
-                st.metric("Markets Covered", db_stats['unique_markets'])
-    
-    with tab3:
-        st.markdown('<h2 class="sub-header">🌤️ Weather Information</h2>', unsafe_allow_html=True)
-        
-        if not st.session_state.bot:
-            st.warning("Please initialize the bot first.")
-        else:
-            weather_city = st.text_input("City for Weather", value=st.session_state.user_city or "Kanpur")
-            
-            if st.button("🌤️ Get Weather"):
-                try:
-                    with st.spinner("Fetching weather data..."):
-                        weather_service = st.session_state.bot.weather_service
-                        weather_data = weather_service.get_weather_data(weather_city)
-                        
-                        if weather_data:
-                            # Current weather
-                            st.markdown("### Current Weather")
-                            col1, col2, col3, col4 = st.columns(4)
-                            
-                            with col1:
-                                st.metric("Temperature", f"{weather_data.get('current_temp', 'N/A')}°C")
-                            with col2:
-                                st.metric("Humidity", f"{weather_data.get('current_humidity', 'N/A')}%")
-                            with col3:
-                                st.metric("Wind Speed", f"{weather_data.get('current_wind_speed', 'N/A')} km/h")
-                            with col4:
-                                st.metric("Condition", weather_data.get('current_condition', 'N/A'))
-                            
-                            # Weather forecast
-                            if 'forecast' in weather_data:
-                                st.markdown("### 7-Day Forecast")
-                                forecast_df = pd.DataFrame(weather_data['forecast'])
-                                st.dataframe(forecast_df, use_container_width=True)
-                        else:
-                            st.error("Could not fetch weather data.")
-                except Exception as e:
-                    st.error(f"Error fetching weather: {e}")
-    
-    with tab4:
-        st.markdown('<h2 class="sub-header">📋 Government Policies</h2>', unsafe_allow_html=True)
-        
-        if not st.session_state.bot:
-            st.warning("Please initialize the bot first.")
-        else:
-            policy_query = st.text_input("Search Policy Information", placeholder="e.g., PM Kisan scheme, crop insurance")
-            
-            if st.button("🔍 Search Policies"):
-                try:
-                    with st.spinner("Searching policy documents..."):
-                        policy_chatbot = st.session_state.bot.policy_chatbot
-                        if policy_chatbot.is_loaded:
-                            results = policy_chatbot.search_policies(policy_query)
-                            if results:
-                                st.markdown("### Policy Search Results")
-                                for i, result in enumerate(results[:5]):  # Show top 5 results
-                                    with st.expander(f"Result {i+1}: {result.get('document', 'Unknown')}"):
-                                        st.write(result.get('content', 'No content available'))
-                                        st.caption(f"Relevance: {result.get('relevance', 0):.2f}")
-                            else:
-                                st.info("No relevant policy documents found.")
-                        else:
-                            st.error("Policy database not loaded.")
-                except Exception as e:
-                    st.error(f"Error searching policies: {e}")
-            
-            # Policy statistics
-            policy_stats = get_policy_stats()
-            if policy_stats:
-                st.markdown("### Policy Database Statistics")
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Total Sections", policy_stats['total_sections'])
-                with col2:
-                    st.metric("Documents Processed", policy_stats['total_documents'])
-    
-    with tab5:
-        st.markdown('<h2 class="sub-header">ℹ️ About the Agricultural Advisor Bot</h2>', unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class="info-box">
-        <h3>🌾 Mission</h3>
-        <p>Empowering Indian farmers with AI-powered agricultural intelligence through multilingual support, 
-        real-time market data, weather insights, and government policy information.</p>
+    # Info section
+    st.markdown("""
+    <div class="info-section">
+        <h3>🤖 About This Bot</h3>
+        <p>This AI-powered agricultural advisor helps farmers with:</p>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>💰 Price Information</h4>
+                <p>Get latest mandi prices for crops across India</p>
+            </div>
+            <div class="feature-card">
+                <h4>🌤️ Weather Advice</h4>
+                <p>Weather-based farming recommendations</p>
+            </div>
+            <div class="feature-card">
+                <h4>📋 Government Policies</h4>
+                <p>Information about agricultural schemes</p>
+            </div>
+            <div class="feature-card">
+                <h4>🌾 Farming Tips</h4>
+                <p>General agricultural advice and best practices</p>
+            </div>
         </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("### 🚀 Key Features")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("""
-            - 🌍 **Multilingual Support**: Hindi & English
-            - 🎯 **Smart Query Classification**: 6 intent categories
-            - 💰 **Intelligent Price Queries**: LLM-based SQL generation
-            - 🌤️ **Weather-Based Advice**: Agricultural insights
+        <p><strong>💡 Tip:</strong> You can ask questions in both English and Hindi. The bot will automatically detect your language and respond accordingly. Just mention your city or crop in your question!</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Chat container
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    
+    # Bot status and initialization
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        st.subheader("💬 Chat with Agricultural Advisor")
+    
+    with col2:
+        if st.session_state.bot:
+            st.markdown('<span class="status-badge status-online">🟢 Online</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="status-badge status-offline">🔴 Offline</span>', unsafe_allow_html=True)
+            if st.button("Start Bot"):
+                if initialize_bot():
+                    st.success("Bot started successfully!")
+                    st.rerun()
+    
+    # Chat input area
+    st.markdown('<div class="input-area">', unsafe_allow_html=True)
+    
+    user_input = st.text_area(
+        "Ask me anything about agriculture:",
+        placeholder="Examples:\n• गेहूं का भाव क्या है?\n• What is the weather like in Mumbai?\n• PM Kisan scheme details\n• Rice prices in Kanpur\n• मौसम कैसा है?\n• Wheat prices in Delhi",
+        height=120
+    )
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col1:
+        if st.button("Send Message", type="primary"):
+            if not st.session_state.bot:
+                st.error("Please start the bot first!")
+            elif user_input.strip():
+                # Add user message
+                st.session_state.chat_history.append({
+                    "role": "user",
+                    "content": user_input,
+                    "timestamp": datetime.now().strftime("%H:%M")
+                })
+                
+                # Get bot response with fallback handling
+                with st.spinner("🤖 Processing your question..."):
+                    try:
+                        response = process_query_with_fallback(user_input)
+                        st.session_state.chat_history.append({
+                            "role": "bot",
+                            "content": response,
+                            "timestamp": datetime.now().strftime("%H:%M")
+                        })
+                    except Exception as e:
+                        error_msg = f"Sorry, I encountered an error: {str(e)}"
+                        st.session_state.chat_history.append({
+                            "role": "bot",
+                            "content": error_msg,
+                            "timestamp": datetime.now().strftime("%H:%M")
+                        })
+                
+                st.rerun()
+    
+    with col2:
+        if st.button("Clear Chat"):
+            st.session_state.chat_history = []
+            st.rerun()
+    
+    with col3:
+        if st.button("Example Questions"):
+            st.info("""
+            **Try asking:**
+            - गेहूं का भाव क्या है?
+            - What is the weather like in Mumbai?
+            - PM Kisan scheme details
+            - Rice prices in Kanpur
+            - मौसम कैसा है?
+            - Best time to plant wheat
+            - Wheat prices in Delhi
             """)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Chat history
+    if st.session_state.chat_history:
+        st.subheader("📝 Conversation History")
         
-        with col2:
-            st.markdown("""
-            - 📋 **Policy Support**: 12 government schemes
-            - 🤖 **AI Integration**: Groq LLM for responses
-            - 📊 **Real-time Data**: 35,522+ price records
-            - 🔄 **Fallback Mechanisms**: Robust error handling
-            """)
-        
-        st.markdown("### 📊 Data Sources")
-        st.markdown("""
-        - **Price Data**: mandi_prices.csv (35,522 records)
-        - **Weather Service**: Open-Meteo API
-        - **Policy Documents**: 12 PDF files with vector search
-        - **Soil Health**: 5 districts data
-        """)
-        
-        st.markdown("### 🛠️ Technical Stack")
-        st.markdown("""
-        - **Python 3.8+**: Core language
-        - **SQLite**: Local database
-        - **FAISS**: Vector database
-        - **Groq API**: LLM services
-        - **Transformers**: Hugging Face models
-        - **Streamlit**: Web interface
-        """)
+        for message in st.session_state.chat_history:
+            if message["role"] == "user":
+                st.markdown(f"""
+                <div class="message user-message">
+                    <strong>You ({message['timestamp']}):</strong><br>
+                    {message['content']}
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="message bot-message">
+                    <strong>Bot ({message['timestamp']}):</strong><br>
+                    {message['content']}
+                </div>
+                """, unsafe_allow_html=True)
+    else:
+        st.info("💡 Start a conversation by asking a question above!")
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # Close chat container
+    
+    # Footer
+    st.markdown("""
+    <div style="text-align: center; margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 10px;">
+        <p><strong>🌾 Agricultural Advisor Bot</strong> | Powered by AI & Agricultural Data</p>
+        <p style="font-size: 0.9rem; color: #666;">Supports English & Hindi | Real-time Price Data | Weather Insights | Policy Information</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # Close main container
 
 if __name__ == "__main__":
     main()
