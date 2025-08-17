@@ -494,25 +494,6 @@ class AgriculturalAdvisorBot:
             return intent_info + "📍 Please set your city first using: 'city [cityname]' (e.g., 'city Mumbai')"
         
         try:
-            # Get comprehensive weather report
-            weather_report = self.weather_service.get_comprehensive_weather_report(self.user_city)
-            
-            # Generate AI-powered advice
-            advice = self.groq_advisor.generate_weather_advice_comprehensive(
-                query, 
-                weather_report['location'],
-                weather_report['current_weather'],
-                weather_report['forecast_data'],
-                weather_report.get('agricultural_insights', {})
-            )
-            
-            return intent_info + advice
-            
-        except Exception as e:
-            logger.error(f"Error handling weather query: {e}")
-            return intent_info + f"❌ Error getting weather information: {str(e)}"
-        
-        try:
             # Get comprehensive weather report using the existing weather service
             print(f"🔍 Fetching weather data for: {self.user_city}")
             report = self.weather_service.get_comprehensive_weather_report(self.user_city)
@@ -565,7 +546,6 @@ class AgriculturalAdvisorBot:
                     response += f"• Wind Speed: {wind_data.get('speed', 0):.1f} km/h\n"
                     
                     response += f"• Precipitation: {current_weather.get('precipitation', 0):.1f} mm\n\n"
-                    
                 except Exception as e:
                     logger.warning(f"Error formatting current weather: {e}")
                     response += "• Current weather data available but format may vary\n\n"
@@ -616,6 +596,12 @@ class AgriculturalAdvisorBot:
             sources += f"• Location Data: Geocoding API\n"
             sources += f"• AI Analysis: Groq API (Llama3-8b-8192 model)\n"
             sources += f"• Agricultural Insights: Weather-based calculations\n"
+            
+            return intent_info + response + sources
+            
+        except Exception as e:
+            logger.error(f"Error handling weather query: {e}")
+            return intent_info + f"❌ Error processing weather query: {e}"
             
             return response + sources
             
