@@ -77,7 +77,9 @@ class QueryClassifier:
             'weather', 'temperature', 'rain', 'rainfall', 'drought', 'flood',
             'humidity', 'wind', 'climate', 'forecast', 'seasonal', 'monsoon',
             'hot', 'cold', 'dry', 'wet', 'storm', 'cyclone', 'heat wave',
-            'frost', 'hail', 'snow', 'sunny', 'cloudy', 'overcast', 'mausam', 'baarish'
+            'frost', 'hail', 'snow', 'sunny', 'cloudy', 'overcast', 'mausam', 'baarish',
+            'मौसम', 'तापमान', 'बारिश', 'सूखा', 'बाढ़', 'आर्द्रता', 'हवा', 'जलवायु',
+            'पूर्वानुमान', 'मानसून', 'गर्म', 'ठंडा', 'सूखा', 'गीला', 'तूफान'
         ]
         
         policy_keywords = [
@@ -90,7 +92,8 @@ class QueryClassifier:
         
         price_keywords = [
             'price', 'rate', 'cost', 'worth', 'value', 'mandi', 'market', 'bhav', 'dam',
-            'mulya', 'keemat', 'rupees', 'rs', 'quintal', 'ton', 'kg', 'per', 'auction'
+            'mulya', 'keemat', 'rupees', 'rs', 'quintal', 'ton', 'kg', 'per', 'auction',
+            'मूल्य', 'दर', 'कीमत', 'भाव', 'मंडी', 'बाजार', 'रुपये', 'क्विंटल', 'किलो'
         ]
         
         technical_keywords = [
@@ -106,7 +109,9 @@ class QueryClassifier:
         agriculture_keywords = [
             'crop', 'farming', 'agriculture', 'soil', 'fertilizer', 'pesticide',
             'irrigation', 'harvest', 'planting', 'seeding', 'pest', 'disease',
-            'yield', 'production', 'storage', 'transport', 'organic', 'traditional', 'modern'
+            'yield', 'production', 'storage', 'transport', 'organic', 'traditional', 'modern',
+            'फसल', 'खेती', 'कृषि', 'मिट्टी', 'खाद', 'कीटनाशक', 'सिंचाई', 'फसल कटाई',
+            'बुवाई', 'बीज', 'कीट', 'रोग', 'उपज', 'उत्पादन', 'भंडारण', 'परिवहन'
         ]
         
         # Count keyword matches
@@ -145,12 +150,66 @@ class GroqAgriculturalAdvisor:
             "Content-Type": "application/json"
         }
     
-    def generate_weather_advice(self, query: str, current_weather, forecast=None) -> str:
+    def _detect_language(self, text: str) -> str:
+        """Detect if the text contains Hindi/Devanagari script"""
+        # Check for Devanagari script (Hindi, Marathi, etc.)
+        devanagari_pattern = r'[\u0900-\u097F]'
+        if re.search(devanagari_pattern, text):
+            return "Hindi"
+        return "English"
+    
+    def _get_language_instructions(self, language: str) -> str:
+        """Get language-specific instructions for AI prompts"""
+        if language.lower() == "hindi":
+            return """
+1. Respond in Hindi (Devanagari script)
+2. Use simple, understandable Hindi language
+3. Keep responses concise and direct (max 4-5 sentences)
+4. Do NOT use formal greetings like "प्रिय किसान" or "धन्यवाद"
+5. Do NOT add signatures or formal closings
+6. Focus on actionable advice only
+7. Use agricultural terms in Hindi when possible
+"""
+        else:
+            return """
+1. Keep responses concise and direct (max 4-5 sentences)
+2. Do NOT use formal greetings like "Dear Farmer" or "Sincerely"
+3. Do NOT add signatures or formal closings
+4. Focus on actionable advice only
+"""
+    
+    def _get_language_system_message(self, language: str, context: str = "general") -> str:
+        """Get language-specific system message for AI"""
+        if language.lower() == "hindi":
+            if context == "weather":
+                return "आप एक सीधे और व्यावहारिक कृषि सलाहकार हैं। मौसम आधारित संक्षिप्त, कार्रवाई योग्य सलाह दें। औपचारिक भाषा या अभिवादन का उपयोग न करें। भारतीय किसानों के लिए व्यावहारिक समाधान पर ध्यान दें।"
+            elif context == "price":
+                return "आप एक सीधे और व्यावहारिक कृषि बाजार सलाहकार हैं। संक्षिप्त, कार्रवाई योग्य मूल्य सलाह दें। औपचारिक भाषा या अभिवादन का उपयोग न करें। भारतीय किसानों के लिए व्यावहारिक समाधान पर ध्यान दें।"
+            else:
+                return "आप एक सीधे और व्यावहारिक कृषि सलाहकार हैं। संक्षिप्त, कार्रवाई योग्य सलाह दें। औपचारिक भाषा या अभिवादन का उपयोग न करें। भारतीय किसानों के लिए व्यावहारिक समाधान पर ध्यान दें।"
+        else:
+            if context == "weather":
+                return "You are a direct and practical agricultural advisor. Provide concise, actionable weather-based advice without formal language or greetings. Focus on practical solutions for Indian farmers."
+            elif context == "price":
+                return "You are a direct and practical agricultural market advisor. Provide concise, actionable price advice without formal language or greetings. Focus on practical solutions for Indian farmers."
+            else:
+                return "You are a direct and practical agricultural advisor. Provide concise, actionable advice without formal language or greetings. Focus on practical solutions for Indian farmers."
+    
+    def generate_weather_advice(self, query: str, current_weather, forecast=None, language: str = "English") -> str:
         """Generate agricultural advice based on weather data"""
         if not self.api_key:
             return "❌ Groq API key not found."
         
         try:
+            # Detect language from query if not specified
+            if language == "English":
+                detected_lang = self._detect_language(query)
+                if detected_lang == "Hindi":
+                    language = "Hindi"
+            
+            language_instructions = self._get_language_instructions(language)
+            system_message = self._get_language_system_message(language, "weather")
+            
             # Build weather information string
             weather_info = f"""Current Weather Conditions:
 - Temperature: {current_weather.temperature_avg:.1f}°C (Max: {current_weather.temperature_max:.1f}°C, Min: {current_weather.temperature_min:.1f}°C)
@@ -184,11 +243,7 @@ Instructions:
 7. Be encouraging and supportive
 8. Use simple, understandable language
 9. Structure your response with clear sections
-10. Focus on practical farming decisions
-11. Keep responses concise and direct (max 4-5 sentences)
-12. Do NOT use formal greetings like "Dear Farmer" or "Sincerely"
-13. Do NOT add signatures or formal closings
-14. Focus on actionable advice only
+10. Focus on practical farming decisions{language_instructions}
 
 Agricultural Advice:"""
 
@@ -218,12 +273,21 @@ Agricultural Advice:"""
             logger.error(f"Error generating weather advice: {e}")
             return f"❌ Error generating advice: {e}"
     
-    def generate_weather_advice_comprehensive(self, query: str, location_info, current_weather, forecast_data, agricultural_insights) -> str:
+    def generate_weather_advice_comprehensive(self, query: str, location_info, current_weather, forecast_data, agricultural_insights, language: str = "English") -> str:
         """Generate comprehensive agricultural advice based on weather data"""
         if not self.api_key:
             return "❌ Groq API key not found."
         
         try:
+            # Detect language from query if not specified
+            if language == "English":
+                detected_lang = self._detect_language(query)
+                if detected_lang == "Hindi":
+                    language = "Hindi"
+            
+            language_instructions = self._get_language_instructions(language)
+            system_message = self._get_language_system_message(language, "weather")
+            
             # Build comprehensive weather information
             location_str = f"Location: {location_info['name']}, {location_info['state']}, {location_info['country']}"
             
@@ -293,11 +357,7 @@ Instructions:
 9. Be encouraging and supportive
 10. Use simple, understandable language
 11. Structure your response with clear sections
-12. Focus on practical farming decisions
-13. Keep responses concise and direct (max 4-5 sentences)
-14. Do NOT use formal greetings like "Dear Farmer" or "Sincerely"
-15. Do NOT add signatures or formal closings
-16. Focus on actionable advice only
+12. Focus on practical farming decisions{language_instructions}
 
 Agricultural Advice:"""
 
@@ -374,12 +434,21 @@ Agricultural Advice:"""
             return f"❌ Error generating SQL: {e}"
 
     
-    def generate_general_advice(self, query: str) -> str:
+    def generate_general_advice(self, query: str, language: str = "English") -> str:
         """Generate general agricultural advice"""
         if not self.api_key:
             return "❌ Groq API key not found."
         
         try:
+            # Detect language from query if not specified
+            if language == "English":
+                detected_lang = self._detect_language(query)
+                if detected_lang == "Hindi":
+                    language = "Hindi"
+            
+            language_instructions = self._get_language_instructions(language)
+            system_message = self._get_language_system_message(language, "general")
+            
             prompt = f"""You are an expert agricultural advisor. Provide helpful advice to the farmer's question.
 
 Farmer's Question: {query}
@@ -393,11 +462,7 @@ Instructions:
 6. Structure your response clearly
 7. If the question is about crops, mention suitable varieties and practices
 8. If about soil, mention testing and improvement methods
-9. If about pests/diseases, mention prevention and treatment
-10. Keep responses concise and direct (max 3-4 sentences)
-11. Do NOT use formal greetings like "Dear Farmer" or "Sincerely"
-12. Do NOT add signatures or formal closings
-13. Focus on actionable advice only
+9. If about pests/diseases, mention prevention and treatment{language_instructions}
 
 Agricultural Advice:"""
 
@@ -406,7 +471,7 @@ Agricultural Advice:"""
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a direct and practical agricultural advisor. Provide concise, actionable advice without formal language or greetings. Focus on practical solutions for Indian farmers."
+                        "content": system_message
                     },
                     {
                         "role": "user",
@@ -427,12 +492,21 @@ Agricultural Advice:"""
             logger.error(f"Error generating general advice: {e}")
             return f"❌ Error generating advice: {e}"
     
-    def generate_price_advice(self, query: str, price_data: str) -> str:
+    def generate_price_advice(self, query: str, price_data: str, language: str = "English") -> str:
         """Generate concise price-related advice"""
         if not self.api_key:
             return "❌ Groq API key not found."
         
         try:
+            # Detect language from query if not specified
+            if language == "English":
+                detected_lang = self._detect_language(query)
+                if detected_lang == "Hindi":
+                    language = "Hindi"
+            
+            language_instructions = self._get_language_instructions(language)
+            system_message = self._get_language_system_message(language, "price")
+            
             prompt = f"""You are an agricultural market advisor. Provide brief, actionable price advice.
 
 Query: {query}
@@ -442,10 +516,7 @@ Instructions:
 1. Give concise market insights (2-3 sentences max)
 2. Focus on actionable advice for farmers
 3. Use simple, direct language
-4. Do NOT use formal greetings like "Dear Farmer" or "Sincerely"
-5. Do NOT add signatures or formal closings
-6. Provide specific recommendations if possible
-7. Focus on actionable advice only
+4. Provide specific recommendations if possible{language_instructions}
 
 Market Advice:"""
 
@@ -454,7 +525,7 @@ Market Advice:"""
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a direct and practical agricultural market advisor. Provide concise, actionable price advice without formal language or greetings. Focus on practical solutions for Indian farmers."
+                        "content": system_message
                     },
                     {
                         "role": "user",
@@ -606,7 +677,7 @@ class AgriculturalAdvisorBot:
             
             # Generate advice using Groq with comprehensive data
             advice = self.groq_advisor.generate_weather_advice_comprehensive(
-                query, location_info, current_weather, forecast_data, agricultural_insights
+                query, location_info, current_weather, forecast_data, agricultural_insights, self.user_language
             )
             
             # Format response
@@ -704,7 +775,7 @@ class AgriculturalAdvisorBot:
             # Fallback to general advice when policy database is not available
             logger.warning("Policy database not loaded, falling back to general advice")
             return intent_info + self.groq_advisor.generate_general_advice(
-                f"Government policy question: {query}. Please provide general information about government agricultural policies and schemes in India."
+                f"Government policy question: {query}. Please provide general information about government agricultural policies and schemes in India.", self.user_language
             )
         
         try:
@@ -723,7 +794,7 @@ class AgriculturalAdvisorBot:
             logger.error(f"Error handling policy query: {e}")
             # Fallback to general advice
             return intent_info + self.groq_advisor.generate_general_advice(
-                f"Government policy question: {query}. Please provide general information about government agricultural policies and schemes in India."
+                f"Government policy question: {query}. Please provide general information about government agricultural policies and schemes in India.", self.user_language
             )
     
     def _handle_agriculture_query(self, query: str) -> str:
@@ -743,7 +814,7 @@ class AgriculturalAdvisorBot:
             return intent_info + self._handle_crop_recommendation_query(query)
         
         # Default to general agricultural advice
-        ai_advice = self.groq_advisor.generate_general_advice(query)
+        ai_advice = self.groq_advisor.generate_general_advice(query, self.user_language)
         
         # Add source attribution
         sources = f"\n📚 **Sources:**\n"
@@ -772,11 +843,11 @@ class AgriculturalAdvisorBot:
             soil_result = self.data_manager.get_soil_health(search_location)
             
             if "error" in soil_result:
-                return f"❌ {soil_result['error']}\n\n🤖 **General Soil Advice:**\n{self.groq_advisor.generate_general_advice(query)}"
+                return f"❌ {soil_result['error']}\n\n🤖 **General Soil Advice:**\n{self.groq_advisor.generate_general_advice(query, self.user_language)}"
             
             # Combine soil data with AI advice
             ai_advice = self.groq_advisor.generate_general_advice(
-                f"Soil health question: {query}. Based on soil data: pH {soil_result['ph']}, Organic Carbon {soil_result['organic_carbon']}%, N {soil_result['nitrogen']} kg/ha, P {soil_result['phosphorus']} kg/ha, K {soil_result['potassium']} kg/ha. Please provide soil management advice."
+                f"Soil health question: {query}. Based on soil data: pH {soil_result['ph']}, Organic Carbon {soil_result['organic_carbon']}%, N {soil_result['nitrogen']} kg/ha, P {soil_result['phosphorus']} kg/ha, K {soil_result['potassium']} kg/ha. Please provide soil management advice.", self.user_language
             )
             
             # Add source attribution
@@ -789,7 +860,7 @@ class AgriculturalAdvisorBot:
             
         except Exception as e:
             logger.error(f"Error handling soil health query: {e}")
-            return f"❌ Error retrieving soil data: {str(e)}\n\n🤖 **General Soil Advice:**\n{self.groq_advisor.generate_general_advice(query)}"
+            return f"❌ Error retrieving soil data: {str(e)}\n\n🤖 **General Soil Advice:**\n{self.groq_advisor.generate_general_advice(query, self.user_language)}"
     
     def _handle_crop_recommendation_query(self, query: str) -> str:
         """Handle crop recommendation queries"""
@@ -822,7 +893,7 @@ class AgriculturalAdvisorBot:
             
             # Generate AI recommendation
             ai_advice = self.groq_advisor.generate_general_advice(
-                f"Crop recommendation question: {query}. {soil_info}{crop_info}Please provide crop recommendations and farming advice."
+                f"Crop recommendation question: {query}. {soil_info}{crop_info}Please provide crop recommendations and farming advice.", self.user_language
             )
             
             response = f"🌾 **Crop Information for {location}:**\n"
@@ -843,7 +914,7 @@ class AgriculturalAdvisorBot:
             
         except Exception as e:
             logger.error(f"Error handling crop recommendation query: {e}")
-            return f"❌ Error retrieving crop data: {str(e)}\n\n🤖 **General Crop Advice:**\n{self.groq_advisor.generate_general_advice(query)}"
+            return f"❌ Error retrieving crop data: {str(e)}\n\n🤖 **General Crop Advice:**\n{self.groq_advisor.generate_general_advice(query, self.user_language)}"
     
     def _handle_price_query(self, query: str) -> str:
         """Handle price-related queries"""
@@ -865,7 +936,7 @@ class AgriculturalAdvisorBot:
         price_info = self._get_crop_price_info(crop, location)
         
         # Combine with AI-generated advice using the new concise method
-        ai_advice = self.groq_advisor.generate_price_advice(query, price_info)
+        ai_advice = self.groq_advisor.generate_price_advice(query, price_info, self.user_language)
         
         # Add source attribution
         sources = f"\n📚 **Sources:**\n"
@@ -879,15 +950,23 @@ class AgriculturalAdvisorBot:
         """Extract crop and location from query"""
         query_lower = query.lower()
         
-        # Common crops - order matters for better matching
-        crops = ["wheat", "rice", "maize", "cotton", "potato", "tomato", "sugarcane", "pulses", "oilseeds"]
+        # Common crops in English and Hindi - order matters for better matching
+        crops_english = ["wheat", "rice", "maize", "cotton", "potato", "tomato", "sugarcane", "pulses", "oilseeds"]
+        crops_hindi = ["गेहूं", "चावल", "मक्का", "कपास", "आलू", "टमाटर", "गन्ना", "दालें", "तिलहन"]
+        
+        # Combine English and Hindi crops
+        all_crops = crops_english + crops_hindi
         crop = None
         
         # More specific matching to avoid false positives
-        for c in crops:
+        for i, c in enumerate(all_crops):
             # Check for exact word boundaries to avoid partial matches
             if f" {c} " in f" {query_lower} " or query_lower.startswith(c) or query_lower.endswith(c):
-                crop = c.title()
+                # Map Hindi crops back to English for database lookup
+                if i >= len(crops_english):
+                    crop = crops_english[i - len(crops_english)].title()
+                else:
+                    crop = c.title()
                 break
         
         # Common locations (cities in our database)
@@ -947,7 +1026,7 @@ class AgriculturalAdvisorBot:
         """Handle technical support queries"""
         intent_info = f"🎯 **Detected Intent: Technical Support**\n\n"
         ai_advice = self.groq_advisor.generate_general_advice(
-            f"Technical question: {query}. Please provide information about agricultural equipment, technology, maintenance, and technical solutions for farming."
+            f"Technical question: {query}. Please provide information about agricultural equipment, technology, maintenance, and technical solutions for farming.", self.user_language
         )
         
         # Add source attribution
@@ -960,7 +1039,7 @@ class AgriculturalAdvisorBot:
     def _handle_general_query(self, query: str) -> str:
         """Handle general queries"""
         intent_info = f"🎯 **Detected Intent: General Inquiry**\n\n"
-        ai_advice = self.groq_advisor.generate_general_advice(query)
+        ai_advice = self.groq_advisor.generate_general_advice(query, self.user_language)
         
         # Add source attribution
         sources = f"\n📚 **Sources:**\n"
@@ -1216,6 +1295,8 @@ class AgriculturalAdvisorBot:
             print(f"🤖 Advisor: Current language: {self.get_user_language()}")
             print("💡 To set language: 'language [language]' (e.g., 'language Hindi')")
             print("🌍 Available languages: English, Hindi, Marathi, Gujarati, Bengali, Tamil, Telugu, Kannada, Malayalam, Punjabi")
+
+
 
 def main():
     """Main function"""
