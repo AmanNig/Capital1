@@ -4,6 +4,31 @@ A comprehensive AI-powered agricultural advisor that provides personalized farmi
 
 ## 🚀 Quick Start
 
+### **🚀 One-Click Setup (Recommended)**
+```bash
+# Clone the repository
+git clone <repository-url>
+cd "Capital One"
+
+# Run the complete setup script
+python setup_and_run.py
+
+# Or use platform-specific scripts:
+# Windows: run_setup.bat
+# Linux/Mac: ./run_setup.sh
+```
+
+The setup script will automatically:
+- ✅ Install all dependencies
+- ✅ Create necessary directories
+- ✅ Initialize the database
+- ✅ Process policy documents
+- ✅ Verify the setup
+- 🎯 Let you choose between CLI or Web interface
+
+### **Manual Setup**
+
+#### **Command Line Interface**
 ```bash
 # Clone and setup
 git clone <repository-url>
@@ -248,7 +273,13 @@ python agricultural_advisor_bot.py --query "PM Kisan scheme details"
 
 ```
 Capital One/
+├── setup_and_run.py                 # Complete setup and run script
+├── run_setup.bat                    # Windows setup script
+├── run_setup.sh                     # Linux/Mac setup script
 ├── agricultural_advisor_bot.py      # Main bot application
+├── streamlit_app.py                 # Streamlit web interface
+├── run_streamlit.py                 # Streamlit runner script
+├── requirements_streamlit.txt       # Streamlit dependencies
 ├── nlp_pipeline/                    # NLP processing modules
 │   ├── language_detector.py         # Hindi/English detection
 │   ├── intent_classifier.py         # Query classification
