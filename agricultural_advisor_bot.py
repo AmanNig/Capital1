@@ -794,13 +794,13 @@ class AgriculturalAdvisorBot:
             response += f"🤖 **AI Agricultural Advice:**\n{advice}"
             
             # Add source attribution
-            sources = f"\n📚 **Sources:**\n"
-            sources += f"• Weather Data: Open-Meteo API (Real-time)\n"
-            sources += f"• Location Data: Geocoding API\n"
-            sources += f"• AI Analysis: Groq API (Llama3-8b-8192 model)\n"
-            sources += f"• Agricultural Insights: Weather-based calculations\n"
+            # sources = f"\n📚 **Sources:**\n"
+            # sources += f"• Weather Data: Open-Meteo API (Real-time)\n"
+            # sources += f"• Location Data: Geocoding API\n"
+            # sources += f"• AI Analysis: Groq API (Llama3-8b-8192 model)\n"
+            # sources += f"• Agricultural Insights: Weather-based calculations\n"
             
-            return intent_info + response + sources
+            return intent_info + response
             
         except Exception as e:
             logger.error(f"Error handling weather query: {e}")
@@ -827,13 +827,13 @@ class AgriculturalAdvisorBot:
             policy_response = self.policy_chatbot.ask_question_with_groq(query)
             
             # Add source attribution
-            sources = f"\n📚 **Sources:**\n"
-            sources += f"• Policy Documents: `pdfs/` directory (12 PDF files)\n"
-            sources += f"• Vector Database: `improved_vector_db/` (973 sections)\n"
-            sources += f"• AI Processing: Groq API (Llama3-8b-8192 model)\n"
-            sources += f"• Documents: PM Kisan, PMKSY, Soil Health Card, Crop Insurance, etc.\n"
+            # sources = f"\n📚 **Sources:**\n"
+            # sources += f"• Policy Documents: `pdfs/` directory (12 PDF files)\n"
+            # sources += f"• Vector Database: `improved_vector_db/` (973 sections)\n"
+            # sources += f"• AI Processing: Groq API (Llama3-8b-8192 model)\n"
+            # sources += f"• Documents: PM Kisan, PMKSY, Soil Health Card, Crop Insurance, etc.\n"
             
-            return intent_info + policy_response + sources
+            return intent_info + policy_response
         except Exception as e:
             logger.error(f"Error handling policy query: {e}")
             # Fallback to general advice
@@ -861,11 +861,11 @@ class AgriculturalAdvisorBot:
         ai_advice = self.groq_advisor.generate_general_advice(query, self.user_language)
         
         # Add source attribution
-        sources = f"\n📚 **Sources:**\n"
-        sources += f"• AI Knowledge: Groq API (Llama3-8b-8192 model)\n"
-        sources += f"• Agricultural Expertise: Pre-trained model knowledge\n"
+        # sources = f"\n📚 **Sources:**\n"
+        # sources += f"• AI Knowledge: Groq API (Llama3-8b-8192 model)\n"
+        # sources += f"• Agricultural Expertise: Pre-trained model knowledge\n"
         
-        return intent_info + ai_advice + sources
+        return intent_info + ai_advice 
     
     def _handle_soil_health_query(self, query: str) -> str:
         """Handle soil health related queries"""
@@ -895,12 +895,12 @@ class AgriculturalAdvisorBot:
             )
             
             # Add source attribution
-            sources = f"\n📚 **Sources:**\n"
-            sources += f"• Soil Data: `soil_health.csv` (5 districts)\n"
-            sources += f"• Database: `agri_data.db` (SQLite)\n"
-            sources += f"• AI Advice: Groq API (Llama3-8b-8192 model)\n"
+            # sources = f"\n📚 **Sources:**\n"
+            # sources += f"• Soil Data: `soil_health.csv` (5 districts)\n"
+            # sources += f"• Database: `agri_data.db` (SQLite)\n"
+            # sources += f"• AI Advice: Groq API (Llama3-8b-8192 model)\n"
             
-            return f"🌱 **Soil Health Data for {location}:**\n{soil_result['formatted']}\n\n🤖 **Soil Management Advice:**\n{ai_advice}{sources}"
+            return f"🌱 **Soil Health Data for {location}:**\n{soil_result['formatted']}\n\n🤖 **Soil Management Advice:**\n{ai_advice}"
             
         except Exception as e:
             logger.error(f"Error handling soil health query: {e}")
@@ -948,13 +948,13 @@ class AgriculturalAdvisorBot:
             response += f"\n🤖 **Crop Recommendations:**\n{ai_advice}"
             
             # Add source attribution
-            sources = f"\n📚 **Sources:**\n"
-            sources += f"• Crop Data: `mandi_prices.csv` (35,522 records)\n"
-            sources += f"• Soil Data: `soil_health.csv` (5 districts)\n"
-            sources += f"• Database: `agri_data.db` (SQLite)\n"
-            sources += f"• AI Recommendations: Groq API (Llama3-8b-8192 model)\n"
+            # sources = f"\n📚 **Sources:**\n"
+            # sources += f"• Crop Data: `mandi_prices.csv` (35,522 records)\n"
+            # sources += f"• Soil Data: `soil_health.csv` (5 districts)\n"
+            # sources += f"• Database: `agri_data.db` (SQLite)\n"
+            # sources += f"• AI Recommendations: Groq API (Llama3-8b-8192 model)\n"
             
-            return response + sources
+            return response 
             
         except Exception as e:
             logger.error(f"Error handling crop recommendation query: {e}")
@@ -1103,11 +1103,11 @@ class AgriculturalAdvisorBot:
         )
         
         # Add source attribution
-        sources = f"\n📚 **Sources:**\n"
-        sources += f"• AI Knowledge: Groq API (Llama3-8b-8192 model)\n"
-        sources += f"• Agricultural Expertise: Pre-trained model knowledge\n"
+        # sources = f"\n📚 **Sources:**\n"
+        # sources += f"• AI Knowledge: Groq API (Llama3-8b-8192 model)\n"
+        # sources += f"• Agricultural Expertise: Pre-trained model knowledge\n"
         
-        return intent_info + ai_advice + sources
+        return intent_info + ai_advice 
     
     def _handle_general_query(self, query: str) -> str:
         """Handle general queries"""
@@ -1115,11 +1115,11 @@ class AgriculturalAdvisorBot:
         ai_advice = self.groq_advisor.generate_general_advice(query, self.user_language)
         
         # Add source attribution
-        sources = f"\n📚 **Sources:**\n"
-        sources += f"• AI Knowledge: Groq API (Llama3-8b-8192 model)\n"
-        sources += f"• Agricultural Expertise: Pre-trained model knowledge\n"
+        # sources = f"\n📚 **Sources:**\n"
+        # sources += f"• AI Knowledge: Groq API (Llama3-8b-8192 model)\n"
+        # sources += f"• Agricultural Expertise: Pre-trained model knowledge\n"
         
-        return intent_info + ai_advice + sources
+        return intent_info + ai_advice
     
     def set_user_city(self, city: str) -> str:
         """Set user's city for weather queries"""

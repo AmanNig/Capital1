@@ -27,80 +27,88 @@ st.set_page_config(
 )
 
 # Clean CSS styling
+
 st.markdown("""
 <style>
+    .stApp {
+        background: url('https://www.agora-agriculture.org/fileadmin/Sections/Home/AGRAR_Website_Verlauf_20240924_Landinpage-Header_1920x1080.jpg') no-repeat center center fixed;
+        background-size: cover;
+    }
     .main-container {
         max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
+        background: rgba(255,255,255,0.85);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
     }
-    
     .header-section {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: rgba(255,255,255,0.85);
+        color: #111;
         padding: 2rem;
         border-radius: 15px;
         text-align: center;
         margin-bottom: 2rem;
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
-    
     .info-section {
-        background: #f8f9fa;
+        background: rgba(255,255,255,0.85);
+        color: #111;
         padding: 1.5rem;
         border-radius: 10px;
         border-left: 4px solid #28a745;
         margin-bottom: 2rem;
     }
-    
     .chat-container {
-        background: white;
+        background: rgba(255,255,255,0.85);
+        color: #111;
         border-radius: 15px;
         padding: 2rem;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
     }
-    
     .message {
         padding: 1rem;
         margin: 1rem 0;
         border-radius: 10px;
         max-width: 80%;
+        color: #111;
+        background: rgba(255,255,255,0.6);
     }
-    
     .user-message {
-        background: #e3f2fd;
+        background: rgba(227,242,253,0.7);
         border-left: 4px solid #2196f3;
         margin-left: auto;
+        color: #111;
     }
-    
     .bot-message {
-        background: #f1f8e9;
+        background: rgba(241,248,233,0.7);
         border-left: 4px solid #4caf50;
+        color: #111;
     }
-    
     .input-area {
-        background: #f8f9fa;
+        background: rgba(255,255,255,0.85);
+        color: #111;
         padding: 1.5rem;
         border-radius: 10px;
         border: 2px solid #e9ecef;
     }
-    
     .feature-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 1rem;
         margin: 1rem 0;
     }
-    
     .feature-card {
-        background: white;
+        background: rgba(255,255,255,0.6);
+        color: #111;
         padding: 1rem;
         border-radius: 8px;
         border: 1px solid #e9ecef;
         text-align: center;
     }
-    
     .stButton > button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -109,12 +117,10 @@ st.markdown("""
         padding: 0.5rem 2rem;
         font-weight: bold;
     }
-    
     .stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
-    
     .status-badge {
         display: inline-block;
         padding: 0.25rem 0.75rem;
@@ -122,18 +128,17 @@ st.markdown("""
         font-size: 0.875rem;
         font-weight: bold;
     }
-    
     .status-online {
         background: #d4edda;
         color: #155724;
     }
-    
     .status-offline {
         background: #f8d7da;
         color: #721c24;
     }
 </style>
 """, unsafe_allow_html=True)
+
 
 # Initialize session state
 if 'bot' not in st.session_state:
@@ -198,13 +203,13 @@ def process_query_with_fallback(query: str) -> str:
 
 def main():
     # Main container
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    # st.markdown('<div class="main-container">', unsafe_allow_html=True)
     
     # Header section
     st.markdown("""
     <div class="header-section">
-        <h1>🌾 Agricultural Advisor Bot</h1>
-        <p style="font-size: 1.2rem; margin: 0;">Your AI-powered farming companion</p>
+        <h1>🌾 AGRIBOT</h1>
+        <p style="font-size: 1.2rem; margin: 0;">Your smart farming partner for quicker, sharper, and greener decisions.</p>
     </div>
     """, unsafe_allow_html=True)
     

@@ -176,6 +176,23 @@ def process_policy_documents():
             print_info("Policy database already exists, skipping processing")
             return True
         
+        # Run PDF vector processor first
+        print_info("Running PDF vector processor...")
+        pdf_result = subprocess.run(
+            [sys.executable, "pdf_vector_processor.py", "pdfs"],
+            capture_output=True,
+            text=True
+        )
+        if pdf_result.returncode != 0:
+            print_error("PDF vector processing failed")
+            if pdf_result.stdout:
+                print_info(pdf_result.stdout)
+            if pdf_result.stderr:
+                print_error(pdf_result.stderr)
+            return False
+        else:
+            print_success("PDF vector processor completed successfully")
+
         # Use the improved policy chatbot to build the improved vector DB
         print_info("Running improved policy document processor...")
         result = subprocess.run(
@@ -198,7 +215,6 @@ def process_policy_documents():
             
     except Exception as e:
         print_error(f"Error processing policy documents: {e}")
-        return False
 
 def verify_setup():
     """Verify that all components are properly set up"""

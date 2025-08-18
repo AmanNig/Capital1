@@ -14,6 +14,7 @@ from pathlib import Path
 import time
 import requests
 from dotenv import load_dotenv
+import sys
 
 # Load environment variables from .env file
 load_dotenv()
@@ -673,6 +674,10 @@ class ImprovedPolicyChatbot:
                 break
             except Exception as e:
                 print(f"❌ Error: {e}")
+
+sys.modules["__main__"].PolicyDocument = PolicyDocument
+sys.modules["__main__"].PolicySection = PolicySection
+
 
 def main():
     """Main function"""
