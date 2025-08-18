@@ -146,7 +146,7 @@ def initialize_database():
         return False
 
 def process_policy_documents():
-    """Process policy documents for vector database"""
+    """Process policy documents for the improved vector database"""
     print_step(5, "Processing policy documents...")
     
     try:
@@ -154,15 +154,24 @@ def process_policy_documents():
             print_info("Policy database already exists, skipping processing")
             return True
         
-        print_info("Running policy document processor...")
-        result = subprocess.run([sys.executable, "pdf_vector_processor.py"], 
-                              capture_output=True, text=True)
-        
+        # Use the improved policy chatbot to build the improved vector DB
+        print_info("Running improved policy document processor...")
+        result = subprocess.run(
+            [sys.executable, "improved_policy_chatbot.py", "--build", "pdfs"],
+            capture_output=True,
+            text=True
+        )
+
         if result.returncode == 0:
-            print_success("Policy documents processed successfully")
+            print_success("Policy documents processed successfully with ImprovedPolicyChatbot")
             return True
         else:
-            print_error(f"Policy processing failed: {result.stderr}")
+            # Surface stdout as well to aid debugging
+            print_error("Policy processing failed with ImprovedPolicyChatbot")
+            if result.stdout:
+                print_info(result.stdout)
+            if result.stderr:
+                print_error(result.stderr)
             return False
             
     except Exception as e:
@@ -197,7 +206,13 @@ def verify_setup():
         try:
             with open("improved_vector_db/metadata.json", "r") as f:
                 metadata = json.load(f)
-            checks.append(f"Policy DB: {metadata.get('total_sections', 0)} sections")
+            # Support both legacy and improved metadata keys
+            num_sections = metadata.get('num_sections', metadata.get('total_sections', 0))
+            num_documents = metadata.get('num_documents', None)
+            if num_documents is not None:
+                checks.append(f"Policy DB: {num_sections} sections across {num_documents} documents")
+            else:
+                checks.append(f"Policy DB: {num_sections} sections")
         except Exception as e:
             checks.append(f"Policy DB error: {e}")
     else:
