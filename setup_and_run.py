@@ -16,6 +16,7 @@ import json
 import sqlite3
 from pathlib import Path
 import platform
+import argparse
 
 class Colors:
     """ANSI color codes for terminal output"""
@@ -120,6 +121,27 @@ def create_directories():
         print_success(f"Created directory: {directory}")
     
     return True
+
+def ensure_env_file():
+    """Create a .env template if missing (non-blocking)."""
+    try:
+        env_path = Path(".env")
+        if not env_path.exists():
+            print_step(3, "Creating .env template (optional)...")
+            content = (
+                "# Environment variables for Agricultural Advisor Bot\n"
+                "# Add your API keys if available. The app works without them, but with reduced features.\n"
+                "GROQ_API_KEY=\n"
+                "WEATHER_API_KEY=\n"
+            )
+            env_path.write_text(content, encoding="utf-8")
+            print_success("Created .env template (edit to add API keys as needed)")
+        else:
+            print_info(".env file found (skipping)")
+        return True
+    except Exception as e:
+        print_warning(f"Could not create .env file: {e}")
+        return False
 
 def initialize_database():
     """Initialize the agricultural database"""
@@ -291,12 +313,22 @@ def start_web_interface():
 
 def main():
     """Main function"""
+    parser = argparse.ArgumentParser(description="Agricultural Advisor Bot - Complete Setup and Runner")
+    parser.add_argument("--interface", choices=["cli", "web", "none"], default="web",
+                        help="What to start after setup (default: web)")
+    parser.add_argument("--non-interactive", action="store_true",
+                        help="Run end-to-end without any prompts (auto-selects interface)")
+    args = parser.parse_args()
+
     print_header("Agricultural Advisor Bot - Complete Setup")
     print_info("This script will set up everything needed to run the agricultural advisor bot")
     
     # Check Python version
     if not check_python_version():
         sys.exit(1)
+    
+    # Create .env template if missing (optional)
+    ensure_env_file()
     
     # Install dependencies
     if not install_dependencies():
@@ -326,9 +358,19 @@ def main():
     print_header("Setup Complete!")
     print_success("All components have been set up successfully!")
     
-    # Get user choice
-    choice = get_user_choice()
+    # Non-interactive or explicit interface selection
+    if args.non_interactive or args.interface in ("cli", "web", "none"):
+        if args.interface == "cli":
+            start_cli_bot()
+        elif args.interface == "web":
+            start_web_interface()
+        else:
+            print_info("Setup finished. Not launching any interface (--interface none)")
+            sys.exit(0)
+        return
     
+    # Interactive choice (fallback)
+    choice = get_user_choice()
     if choice == '1':
         start_cli_bot()
     elif choice == '2':

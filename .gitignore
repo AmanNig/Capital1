@@ -301,6 +301,9 @@ secrets.json
 # Database files
 *.sqlite
 *.sqlite3
+agri_data.db
+improved_vector_db/
+compare_classifiers.py
 
 # Backup files
 *.bak

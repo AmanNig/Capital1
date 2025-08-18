@@ -16,8 +16,8 @@ fi
 # Make the script executable
 chmod +x setup_and_run.py
 
-# Run the setup script
-python3 setup_and_run.py
+# Run the setup script in non-interactive mode and launch web app
+python3 setup_and_run.py --non-interactive --interface web
 
 echo ""
 echo "Setup completed!"
