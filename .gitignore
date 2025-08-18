@@ -233,7 +233,6 @@ $RECYCLE.BIN/
 # NLP Pipeline Specific
 # Model files and caches
 models/
-*.pkl
 *.pickle
 *.joblib
 *.h5
